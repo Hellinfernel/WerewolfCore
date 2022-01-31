@@ -9,4 +9,10 @@ public class WerewolfMove implements GameMove {
 
         this.game = game;
     }
+
+    @Override
+    public void execute() {
+        game.getPlayers().stream().forEach(player -> player.user().tell("Not inplemented yet"));
+
+    }
 }

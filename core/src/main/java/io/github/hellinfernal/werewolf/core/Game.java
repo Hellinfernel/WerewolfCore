@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
  * - Tag und Nacht sind die runden die gespielt werden, jede Rolle hat jeweils einen Zug
  */
 public class Game {
+    private boolean isDay;
 
     private final List<Player> _playersPlayingTheGame = new ArrayList<>();
     private final List<WinningCondition> _winConditions = List.of(
@@ -30,12 +31,13 @@ public class Game {
     private final GameRound _dayRound = new DayRound();
 
     private final GameMove _werewolfMove = new WerewolfMove(this);
-    private final GameMove _villagerMove = new VillagerMove();
+    private final GameMove _villagerMove = new VillagerMove(this);
 
     private GameRound _activeRound = _nightRound;
     private GameMove _activeMove = _werewolfMove;
 
     public Game(final List<User> usersThatWantToPlay) {
+        isDay = false;
         final long amountOfWerewolfs = GameRole.Werewolf.getAmount(usersThatWantToPlay.size());
         int werewolfsSelected = 0;
         Collections.shuffle(usersThatWantToPlay);
@@ -51,10 +53,23 @@ public class Game {
             final Player player = new GamePlayer(gameRole, user);
             _playersPlayingTheGame.add(player);
         }
+
     }
 
 
-    public void playRound() {
+    public void playStandardRound() {
+        boolean gameIsOver = false;
+        while (gameIsOver == false) {
+
+
+        if (isDay == true) {
+            _villagerMove.execute();
+
+
+        } else {
+            _werewolfMove.execute();
+
+        }
         // spielen wir Tag oder Nacht?
         // -> spielen die Werewolfs oder die Villagers?
         // -> oder ist die Runde fertig?
@@ -62,10 +77,14 @@ public class Game {
         // -> wie notifiziert das spiel die einzelnen Spieler?
 
 
-        final boolean gameIsOver = _winConditions.stream().anyMatch(c -> c.isSatisfied(this));
+        gameIsOver = _winConditions.stream().anyMatch(c -> c.isSatisfied(this));
+        }
         if (gameIsOver) {
             // alle player notifizieren
             // game schließen
+        }
+        else {
+            playStandardRound();
         }
     }
 
