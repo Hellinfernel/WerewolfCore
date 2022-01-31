@@ -5,13 +5,28 @@ import io.github.hellinfernal.werewolf.core.user.User;
 
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 
 public class TestUser implements User {
-    private final String _name;
+    private final String                       _name;
+    private final Function<Set<Player>,Player> _votedPlayer;
+
+    public TestUser(final String name, final Function<Set<Player>,Player> votedPlayer ) {
+        _name = name;
+        _votedPlayer = votedPlayer;
+    }
+
+    @Override
+    public String toString() {
+        return "Testuser: " + _name;
+    }
 
     public TestUser() {
-        _name = UUID.randomUUID().toString();
+        this(UUID.randomUUID().toString(), v -> null);
     }
+
 
     @Override
     public String name() {
@@ -26,10 +41,7 @@ public class TestUser implements User {
 
     @Override
     public Player requestVillagerVote(Set<Player> potentialTargets) {
-        Player votedTarget;
-        votedTarget = potentialTargets.stream().findFirst().get();
-        System.out.println("TestUser " + _name + " voted for " + votedTarget.user().name());
-        return votedTarget;
+        return _votedPlayer.apply(potentialTargets);
     }
 
     @Override

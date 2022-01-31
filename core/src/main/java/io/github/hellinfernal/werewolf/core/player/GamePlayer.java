@@ -25,6 +25,11 @@ public class GamePlayer implements Player {
     }
 
     @Override
+    public void kill() {
+        _alive = false;
+    }
+
+    @Override
     public User user() {
         return _user;
     }

@@ -8,5 +8,7 @@ public interface Player {
 
     boolean isAlive();
 
+    void kill();
+
     User user();
 }
