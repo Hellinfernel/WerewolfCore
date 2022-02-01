@@ -27,7 +27,7 @@ class RunningGameTest {
         assertThat(game.getPlayers().stream().filter(p -> p.role().equals(GameRole.Werewolf)).count()).isEqualTo(1);
         assertThat(game.getPlayers().stream().filter(p -> p.role().equals(GameRole.Villager)).count()).isEqualTo(3);
 
-        game.playStandardRound();
+
     }
 
     @Test
