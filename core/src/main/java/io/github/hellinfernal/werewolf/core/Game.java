@@ -92,6 +92,10 @@ public class Game {
         return _playersPlayingTheGame;
     }
 
+    public GameMove get_villagerMove() {
+        return _villagerMove;
+    }
+
     public List<Player> getAlivePlayers() {
         return getPlayers().stream().filter(Player::isAlive).collect(Collectors.toList());
     }

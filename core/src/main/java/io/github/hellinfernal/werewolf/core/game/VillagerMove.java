@@ -30,30 +30,66 @@ public class VillagerMove implements GameMove {
       _game.getAlivePlayers().forEach(player -> _votesByPlayer.put(player, new AtomicLong()));
       _voters.addAll(_game.getAlivePlayers());
 
-      _voters.forEach(this::voteProcess);
+      _voters.forEach(voters -> voteProcess(voters,_votesByPlayer));
       final AtomicReference<Player> highestVotedPlayer = new AtomicReference<>(null);
+      AtomicLong votesHighest = new AtomicLong();
 
       _votesByPlayer.forEach((player, votes) -> {
+         //finds the player who has the most votes
          if (highestVotedPlayer.get() == null) {
             highestVotedPlayer.set(player);
          } else {
-            long votesHighest = _votesByPlayer.get(highestVotedPlayer.get()).get();
+            votesHighest.set(_votesByPlayer.get(highestVotedPlayer.get()).get());
             long votesCurrent = votes.get();
-            if (votesCurrent > votesHighest) {
+            if (votesCurrent > votesHighest.get()) {
                highestVotedPlayer.set(player);
             }
          }
       });
 
+      if (_votesByPlayer.entrySet()
+              .stream()
+              .filter(p -> p.getValue().get() == votesHighest.get())
+              .count() > 1){
+         final Map<Player,AtomicLong> SecondVoteMap = new HashMap<>();
+         //second voteMap for a second Vote
+         _votesByPlayer.entrySet()
+                 .stream()
+                 .filter(p -> p.getValue().get() == votesHighest.get())
+                 .forEach(player -> SecondVoteMap.put(player.getKey(),new AtomicLong()));
+         //Adds all who have the same number of votes as that one with the highest votes
+         _voters.forEach(player -> voteProcess(player,SecondVoteMap));
+
+          SecondVoteMap.forEach((player, votes) -> {
+              //finds the player who has the most votes
+              if (highestVotedPlayer.get() == null) {
+                  highestVotedPlayer.set(player);
+              } else {
+                  votesHighest.set(_votesByPlayer.get(highestVotedPlayer.get()).get());
+                  long votesCurrent = votes.get();
+                  if (votesCurrent > votesHighest.get()) {
+                      highestVotedPlayer.set(player);
+                  }
+              }
+          });
+
+
+
+
+
+
+      }
+         //checks if there are more than one player with the most votes
       highestVotedPlayer.get().kill();
    }
 
-   private void voteProcess( Player player ) {
-      final Player votedPlayer = player.user().requestVillagerVote(_votesByPlayer.keySet());
+   private void voteProcess(Player player, Map<Player, AtomicLong> voteMap) {
+      //unsure if that actually changes the overgiven Map
+      final Player votedPlayer = player.user().requestVillagerVote(voteMap.keySet());
       if (votedPlayer == null) {
          return;
       }
-      final AtomicLong votes = _votesByPlayer.get(votedPlayer);
+      final AtomicLong votes = voteMap.get(votedPlayer);
       if ( votes == null ) {
          throw new IllegalStateException("voted player is not alive. This should not happen");
       }

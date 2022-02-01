@@ -56,17 +56,25 @@ class RunningGameTest {
         final TestUser aleks = new TestUser("Aleks", v -> null);
         final TestUser kevin = new TestUser("Kevin", votes -> votes.stream().filter(p -> p.user() == aleks).findFirst().orElse(null));
         final TestUser peter = new TestUser("Peter", votes -> votes.stream().filter(p -> p.user() == kevin).findFirst().orElse(null));
-        final TestUser lisa = new TestUser("Lisa", votes -> votes.stream().filter(p -> p.user() == peter).findFirst().orElse(null));
+        final TestUser lisa = new TestUser("Lisa", votes -> votes.stream().filter(p -> p.user() == aleks).findFirst().orElse(null));
+        final TestUser sahra = new TestUser("Sahra", votes -> votes.stream().filter(p -> p.user() == kevin).findFirst().orElse(null));
+        final TestUser tina = new TestUser("Tina",votes -> votes.stream().filter(p -> p.user() == peter).findFirst()
+                .orElse(votes.stream().filter(p -> p.user() == kevin).findFirst().orElse(null)));
+
+
         usersThatWantToPlay.add(kevin);
         usersThatWantToPlay.add(aleks);
         usersThatWantToPlay.add(peter);
         usersThatWantToPlay.add(lisa);
+        usersThatWantToPlay.add(sahra);
+        usersThatWantToPlay.add(tina);
 
         final Game game = new Game(usersThatWantToPlay);
         final VillagerMove villagerMove = new VillagerMove(game);
 
-        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks, peter, lisa, kevin);
+        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks, peter, lisa, kevin,sahra,tina);
         villagerMove.execute();
-        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(lisa);
+        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks,peter,lisa,sahra,tina);
+
     }
 }
