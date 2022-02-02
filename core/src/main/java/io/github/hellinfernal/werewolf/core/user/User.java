@@ -13,6 +13,9 @@ public interface User {
 
 
     Player requestVillagerVote(Set<Player> potentialTargets);
+    //for the vote at the day
+    Player requestWerewolfVote(Set<Player> potentialTargets);
+    //for the vote in the night, is usually only used if you are a werewolf
 
     void informAboutResultOfVillagerVote(Player killedPlayer);
 }

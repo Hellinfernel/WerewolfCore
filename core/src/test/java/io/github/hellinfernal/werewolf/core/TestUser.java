@@ -39,8 +39,14 @@ public class TestUser implements User {
 
     }
 
+
     @Override
     public Player requestVillagerVote(Set<Player> potentialTargets) {
+        return _votedPlayer.apply(potentialTargets);
+    }
+
+    @Override
+    public Player requestWerewolfVote(Set<Player> potentialTargets) {
         return _votedPlayer.apply(potentialTargets);
     }
 

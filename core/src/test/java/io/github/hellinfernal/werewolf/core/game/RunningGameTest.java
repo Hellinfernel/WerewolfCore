@@ -10,9 +10,12 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.github.hellinfernal.werewolf.core.role.GameRole.Werewolf;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RunningGameTest {
+
+
 
     @Test
     void testGame() {
@@ -24,7 +27,7 @@ class RunningGameTest {
 
         final Game game = new Game(usersThatWantToPlay);
 
-        assertThat(game.getPlayers().stream().filter(p -> p.role().equals(GameRole.Werewolf)).count()).isEqualTo(1);
+        assertThat(game.getPlayers().stream().filter(p -> p.role().equals(Werewolf)).count()).isEqualTo(1);
         assertThat(game.getPlayers().stream().filter(p -> p.role().equals(GameRole.Villager)).count()).isEqualTo(3);
 
 
@@ -73,8 +76,38 @@ class RunningGameTest {
         final VillagerMove villagerMove = new VillagerMove(game);
 
         assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks, peter, lisa, kevin,sahra,tina);
-        villagerMove.execute();
+        game.get_villagerMove().execute();
         assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks,peter,lisa,sahra,tina);
+
+    }
+
+    @Test
+    void testWerewolfHunt(){
+        final List<User> usersThatWantToPlay = new ArrayList<>();
+        final List<User> usersThatWantToBeWerewolfes = new ArrayList<>();
+        final TestUser nostradamus;
+        final TestUser aleks = new TestUser("Aleks", v -> null);
+        final TestUser kevin = new TestUser("Kevin", votes -> votes.stream().filter(p -> p.user() == aleks).findFirst().orElse(null));
+        final TestUser peter = new TestUser("Peter", votes -> votes.stream().filter(p -> p.user() == kevin).findFirst().orElse(null));
+        final TestUser lisa = new TestUser("Lisa", votes -> votes.stream().filter(p -> p.user() == peter).findFirst().orElse(null));
+        nostradamus = new TestUser("Nostradamus",votes -> votes.stream().filter(p -> p.user() == kevin).findFirst().orElse(null));
+
+
+
+
+        usersThatWantToPlay.add(kevin);
+        usersThatWantToPlay.add(aleks);
+        usersThatWantToPlay.add(peter);
+        usersThatWantToPlay.add(lisa);
+        usersThatWantToBeWerewolfes.add(nostradamus);
+
+        final Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes);
+        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks, peter, lisa, kevin,nostradamus);
+        assertThat(game.getAlivePlayers().stream().filter(player -> player.user() == nostradamus)).extracting(Player::role).contains(Werewolf);
+        game.get_werewolfMove().execute();
+        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks, peter, lisa,nostradamus);
+        assertThat(game.getPlayers().stream().filter(p -> p.role().equals(Werewolf)).count()).isEqualTo(1);
+        assertThat(game.getPlayers().stream().filter(p -> p.role().equals(GameRole.Villager)).count()).isEqualTo(4);
 
     }
 }

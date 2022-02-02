@@ -14,6 +14,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static io.github.hellinfernal.werewolf.core.role.GameRole.Villager;
+import static io.github.hellinfernal.werewolf.core.role.GameRole.Werewolf;
+
 /**
  * TODOS:
  * - Intro mit Geschichten erzählen zwischen den Runden
@@ -38,14 +41,14 @@ public class Game {
 
     public Game(final List<User> usersThatWantToPlay) {
         isDay = false;
-        final long amountOfWerewolfs = GameRole.Werewolf.getAmount(usersThatWantToPlay.size());
+        final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size());
         int werewolfsSelected = 0;
         Collections.shuffle(usersThatWantToPlay);
 
         for (final User user : usersThatWantToPlay) {
             GameRole gameRole;
             if (werewolfsSelected < amountOfWerewolfs) {
-                gameRole = GameRole.Werewolf;
+                gameRole = Werewolf;
                 werewolfsSelected++;
             } else {
                 gameRole = GameRole.Villager;
@@ -55,6 +58,40 @@ public class Game {
         }
 
     }
+    public Game(final List<User> usersThatWantToPlay,final List<User> usersThatWantToBeWerewolfes) {
+
+
+        isDay = false;
+        final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size()+ usersThatWantToBeWerewolfes.size());
+        int werewolfsSelected = 0;
+        if (usersThatWantToBeWerewolfes.size() > amountOfWerewolfs){
+            throw new RuntimeException("You need a bigger game");
+        }
+        for (final User user : usersThatWantToBeWerewolfes){
+            GameRole gameRole;
+            gameRole = Werewolf;
+            werewolfsSelected++;
+            final Player player = new GamePlayer(gameRole,user);
+            _playersPlayingTheGame.add(player);
+        }
+
+
+        Collections.shuffle(usersThatWantToPlay);
+
+        for (final User user : usersThatWantToPlay) {
+            GameRole gameRole;
+            if (werewolfsSelected < amountOfWerewolfs) {
+                gameRole = Werewolf;
+                werewolfsSelected++;
+            } else {
+                gameRole = GameRole.Villager;
+            }
+            final Player player = new GamePlayer(gameRole, user);
+            _playersPlayingTheGame.add(player);
+        }
+
+    }
+
 
 
     public void playStandardRound() {
@@ -95,8 +132,18 @@ public class Game {
     public GameMove get_villagerMove() {
         return _villagerMove;
     }
+    public GameMove get_werewolfMove(){
+        return _werewolfMove;
+    }
 
     public List<Player> getAlivePlayers() {
         return getPlayers().stream().filter(Player::isAlive).collect(Collectors.toList());
+    }
+    public List<Player> getWerewolfPlayers(){
+        return getPlayers().stream().filter(player -> player.role() == Werewolf).collect(Collectors.toList());
+    }
+    public List<Player> getVillagerPlayers(){
+        return getPlayers().stream().filter(player -> player.role() == Villager).collect(Collectors.toList());
+
     }
 }
