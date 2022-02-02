@@ -102,12 +102,13 @@ class RunningGameTest {
         usersThatWantToBeWerewolfes.add(nostradamus);
 
         final Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes);
+        assertThat(game.getPlayers().stream().filter(p -> p.role().equals(Werewolf)).count()).isEqualTo(1);
+        assertThat(game.getPlayers().stream().filter(p -> p.role().equals(GameRole.Villager)).count()).isEqualTo(4);
         assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks, peter, lisa, kevin,nostradamus);
         assertThat(game.getAlivePlayers().stream().filter(player -> player.user() == nostradamus)).extracting(Player::role).contains(Werewolf);
         game.get_werewolfMove().execute();
         assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks, peter, lisa,nostradamus);
-        assertThat(game.getPlayers().stream().filter(p -> p.role().equals(Werewolf)).count()).isEqualTo(1);
-        assertThat(game.getPlayers().stream().filter(p -> p.role().equals(GameRole.Villager)).count()).isEqualTo(4);
+
 
     }
 }
