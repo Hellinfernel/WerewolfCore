@@ -15,7 +15,7 @@ public class WerewolfMove implements GameMove {
 
     private final Map<Player, AtomicLong> _huntingTargets = new HashMap<>();
     //all Players who can be killed by a Vote.
-    private final List<Player> _voters        = new ArrayList<>();
+    private final List<Player> _hunters = new ArrayList<>();
     // All voters. If their boolean is true, they still have a vote.
 
 
@@ -30,11 +30,11 @@ public class WerewolfMove implements GameMove {
     public void execute() {
 
         _huntingTargets.clear();
-        _voters.clear();
-        _game.getVillagerPlayers().forEach(player -> _huntingTargets.put(player, new AtomicLong()));
-        _voters.addAll(_game.getWerewolfPlayers());
+        _hunters.clear();
+        _game.getAliveVillagerPlayers().forEach(player -> _huntingTargets.put(player, new AtomicLong()));
+        _hunters.addAll(_game.getAliveWerewolfPlayers());
 
-        _voters.forEach(voters -> voteProcess(voters, _huntingTargets));
+        _hunters.forEach(voters -> voteProcess(voters, _huntingTargets));
         final AtomicReference<Player> highestVotedPlayer = new AtomicReference<>(null);
         AtomicLong votesHighest = new AtomicLong();
 
@@ -62,7 +62,7 @@ public class WerewolfMove implements GameMove {
                     .filter(p -> p.getValue().get() == votesHighest.get())
                     .forEach(player -> SecondVoteMap.put(player.getKey(),new AtomicLong()));
             //Adds all who have the same number of votes as that one with the highest votes
-            _voters.forEach(player -> voteProcess(player,SecondVoteMap));
+            _hunters.forEach(player -> voteProcess(player,SecondVoteMap));
 
             SecondVoteMap.forEach((player, votes) -> {
                 //finds the player who has the most votes

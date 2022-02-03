@@ -111,4 +111,55 @@ class RunningGameTest {
 
 
     }
+    @Test
+    void testBaseGame(){
+        final List<User> usersThatWantToPlay = new ArrayList<>();
+        final List<User> usersThatWantToBeWerewolfes = new ArrayList<>();
+        final TestUser nostradamus;
+        // he is the Werewolf, Dies at the second Day
+        final TestUser aleks;
+        // dies in the first night
+        final TestUser kevin;
+        //Dies in the first Vote, is a werewolf too
+        final TestUser peter;
+        //Survives
+        final TestUser lisa;
+        //Survives
+        final TestUser tina;
+        //Dies in the second Night
+        lisa = new TestUser("Lisa");
+        aleks = new TestUser("Aleks");
+        kevin = new TestUser("Kevin");
+        peter = new TestUser("Peter");
+        nostradamus = new TestUser("Nostradamus");
+
+        tina = new TestUser("Tina");
+        nostradamus.set_votedPlayer(votes -> votes.stream().filter(p -> p.user() == aleks).findFirst().orElse(votes.stream().filter(p -> p.user() == tina).findFirst().orElse(votes.stream().filter(p -> p.user() == lisa).findFirst().orElse(null))));
+        kevin.set_votedPlayer(votes -> votes.stream().filter(p -> p.user() == aleks).findFirst().orElse(votes.stream().filter(p -> p.user() == tina).findFirst().orElse(null)));
+        aleks.set_votedPlayer(votes -> votes.stream().filter(p -> p.user() == nostradamus).findFirst().orElse(null));
+        lisa.set_votedPlayer(votes -> votes.stream().filter(p -> p.user() == kevin).findFirst().orElse(votes.stream().filter(p -> p.user() == nostradamus).findFirst().orElse(null)));
+        peter.set_votedPlayer(votes -> votes.stream().filter(p -> p.user() == kevin).findFirst().orElse(votes.stream().filter(p -> p.user() == nostradamus).findFirst().orElse(null)));
+        tina.set_votedPlayer(votes -> votes.stream().filter(p -> p.user() == kevin).findFirst().orElse(votes.stream().filter(p -> p.user() == peter).findFirst().orElse(null)));
+
+
+
+
+        usersThatWantToPlay.add(aleks);
+        usersThatWantToBeWerewolfes.add(kevin);
+        usersThatWantToPlay.add(peter);
+        usersThatWantToPlay.add(lisa);
+        usersThatWantToPlay.add(tina);
+        usersThatWantToBeWerewolfes.add(nostradamus);
+
+        final Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes);
+        assertThat(game.getPlayers().stream().filter(p -> p.role().equals(Werewolf)).count()).isEqualTo(2);
+        assertThat(game.getPlayers().stream().filter(p -> p.role().equals(GameRole.Villager)).count()).isEqualTo(4);
+        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks, peter, lisa, kevin,nostradamus,tina);
+        assertThat(game.getAliveWerewolfPlayers()).extracting(Player::user).containsOnly(kevin,nostradamus);
+        game.playStandardRound();
+        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(lisa, peter);
+
+    }
+
+
 }

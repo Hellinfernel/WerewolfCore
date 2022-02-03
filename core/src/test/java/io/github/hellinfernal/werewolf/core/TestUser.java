@@ -11,12 +11,19 @@ import java.util.function.Supplier;
 
 public class TestUser implements User {
     private final String                       _name;
-    private final Function<Set<Player>,Player> _votedPlayer;
+    private Function<Set<Player>,Player> _votedPlayer;
 
     public TestUser(final String name, final Function<Set<Player>,Player> votedPlayer ) {
         _name = name;
         _votedPlayer = votedPlayer;
     }
+    public void set_votedPlayer(Function<Set<Player>,Player> votedPlayer){
+        _votedPlayer = votedPlayer;
+    }
+    public TestUser(final String name){
+        _name = name;
+    }
+
 
     @Override
     public String toString() {
@@ -54,5 +61,10 @@ public class TestUser implements User {
     public void informAboutResultOfVillagerVote(Player killedPlayer) {
         System.out.println(killedPlayer + " was killed.");
 
+    }
+
+    @Override
+    public void informAboutGameEnd() {
+        System.out.println("game ends :D");
     }
 }

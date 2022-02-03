@@ -95,8 +95,10 @@ public class Game {
 
 
     public void playStandardRound() {
-        boolean gameIsOver = false;
-        while (gameIsOver == false) {
+        
+        WinningCondition fulfilledWinningCondition = null;
+
+        while (fulfilledWinningCondition == null) {
 
 
         if (isDay == true) {
@@ -107,21 +109,33 @@ public class Game {
             _werewolfMove.execute();
 
         }
+        changeDayTime();
         // spielen wir Tag oder Nacht?
         // -> spielen die Werewolfs oder die Villagers?
         // -> oder ist die Runde fertig?
         // -> wie findet eine Abstimmung statt?
         // -> wie notifiziert das spiel die einzelnen Spieler?
+            
 
 
-        gameIsOver = _winConditions.stream().anyMatch(c -> c.isSatisfied(this));
+        fulfilledWinningCondition = _winConditions.stream().filter(c -> c.isSatisfied(this)).findAny().orElse(null );
         }
-        if (gameIsOver) {
+        if (fulfilledWinningCondition != null) {
+            getPlayers().forEach(player -> player.user().informAboutGameEnd());
             // alle player notifizieren
             // game schließen
         }
         else {
             playStandardRound();
+        }
+    }
+
+    private void changeDayTime() {
+        if (isDay == true){
+            isDay = false;
+        }
+        else {
+            isDay = true;
         }
     }
 
@@ -136,14 +150,15 @@ public class Game {
         return _werewolfMove;
     }
 
+
     public List<Player> getAlivePlayers() {
         return getPlayers().stream().filter(Player::isAlive).collect(Collectors.toList());
     }
-    public List<Player> getWerewolfPlayers(){
-        return getPlayers().stream().filter(player -> player.role() == Werewolf).collect(Collectors.toList());
+    public List<Player> getAliveWerewolfPlayers(){
+        return getPlayers().stream().filter(player -> player.role() == Werewolf).filter(Player::isAlive).collect(Collectors.toList());
     }
-    public List<Player> getVillagerPlayers(){
-        return getPlayers().stream().filter(player -> player.role() == Villager).collect(Collectors.toList());
+    public List<Player> getAliveVillagerPlayers(){
+        return getPlayers().stream().filter(player -> player.role() == Villager).filter(Player::isAlive).collect(Collectors.toList());
 
     }
 }
