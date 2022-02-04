@@ -57,8 +57,11 @@ class RunningGameTest {
     public Predicate<Player> voteUser(TestUser testUser) {
         return p -> p.user().equals(testUser);
     }
+    public Predicate<Player> voteUser(List<TestUser> testUsers){
+        return p -> testUsers.stream().filter(u -> u.equals(p)).findFirst().isPresent();
+    }
 
-    @Test
+    /*@Test
     void testVillagersWithSameVotes(){
         final List<User> usersThatWantToPlay = new ArrayList<>();
         final TestUser aleks = new TestUser("Aleks", v -> false);
@@ -82,7 +85,7 @@ class RunningGameTest {
         game.getVillagerMove().execute();
         assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks,peter,lisa,sahra,tina);
 
-    }
+    } */
 
     @Test
     void testWerewolfHunt(){
@@ -111,6 +114,41 @@ class RunningGameTest {
 
 
     }
+    @Test
+    void testSecondBallot(){
+        //Tests if the double vote feature works.
+        final List<User> usersThatWantToPlay = new ArrayList<>();
+        final List<User> usersThatWantToBeWerewolfes = new ArrayList<>();
+
+        final TestUser villager3 = new TestUser("Lisa");
+        final TestUser villager1 = new TestUser("Aleks");
+        final TestUser villager2 = new TestUser("Peter");
+        final TestUser villager4 = new TestUser("Tina");
+        final TestUser werewolf1 = new TestUser("Nostradamus");
+
+        usersThatWantToBeWerewolfes.add(werewolf1);
+
+        usersThatWantToPlay.add(villager1);
+        usersThatWantToPlay.add(villager2);
+        usersThatWantToPlay.add(villager3);
+        usersThatWantToPlay.add(villager4);
+
+        final Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes);
+        final List<TestUser> villager4VoteList = new ArrayList<>();
+        villager4VoteList.add(villager2);
+        villager4VoteList.add(werewolf1);
+        werewolf1.changeVote(voteUser(villager1));
+        villager1.changeVote(voteUser(werewolf1));
+        villager2.changeVote(voteUser(villager1));
+        villager3.changeVote(voteUser(werewolf1));
+        villager4.changeVote(voteUser(villager4VoteList));
+        game.getVillagerMove().execute();
+        assertThat(game.getKilledPlayers()).extracting(Player::user).containsOnly(werewolf1);
+
+
+
+    }
+
     @Test
     void testBaseGame(){
         final List<User> usersThatWantToPlay = new ArrayList<>();
@@ -152,12 +190,35 @@ class RunningGameTest {
         villager2.changeVote(voteUser(werewolf1));
         villager3.changeVote(voteUser(werewolf1));
         villager4.changeVote(voteUser(villager4));
-        werewolf1.changeVote(voteUser(villager2));
-        werewolf2.changeVote(voteUser(villager3));
+        werewolf1.changeVote(voteUser(villager3));
+        werewolf2.changeVote(voteUser(villager2));
         assertThat(game.playStandardRound())
               .describedAs("Game has finished too early.")
               .isFalse();
         assertThat(game.getKilledPlayers()).extracting(Player::user).containsOnly(villager1, werewolf1);
+
+        //Third round is played at night -> so only werewolfs are allowed to vote
+
+        assertThat(game.playStandardRound())
+                .describedAs("Game has finished too early.")
+                .isFalse();
+        assertThat(game.getKilledPlayers()).extracting(Player::user).containsOnly(villager1, werewolf1,villager2);
+
+        //Forth round is played at day -> so all villagers are allowed to vote
+        //final round
+        villager3.changeVote(voteUser(werewolf2));
+        villager4.changeVote(voteUser(werewolf2));
+        werewolf2.changeVote(voteUser(villager3));
+
+        assertThat(game.playStandardRound())
+                .describedAs("Game Has finished")
+                .isTrue();
+
+        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(villager3,villager4);
+
+
+
+
     }
 
 
