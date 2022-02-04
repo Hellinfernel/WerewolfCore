@@ -1,6 +1,9 @@
 package io.github.hellinfernal.werewolf.core.player;
 
+import java.util.EnumSet;
+
 import io.github.hellinfernal.werewolf.core.role.GameRole;
+import io.github.hellinfernal.werewolf.core.role.SpecialRole;
 import io.github.hellinfernal.werewolf.core.user.User;
 
 public class GamePlayer implements Player {
@@ -17,6 +20,21 @@ public class GamePlayer implements Player {
     @Override
     public GameRole role() {
         return _role;
+    }
+
+    @Override
+    public EnumSet<SpecialRole> specialRoles() {
+        return null;
+    }
+
+    @Override
+    public void grantSpecialRole( final SpecialRole role ) {
+
+    }
+
+    @Override
+    public void denySpecialRole( final SpecialRole role ) {
+
     }
 
     @Override

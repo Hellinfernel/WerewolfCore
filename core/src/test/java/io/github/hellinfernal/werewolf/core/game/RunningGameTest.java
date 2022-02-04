@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 import static io.github.hellinfernal.werewolf.core.role.GameRole.Werewolf;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,10 +37,10 @@ class RunningGameTest {
     @Test
     void testVillagerMove(){
         final List<User> usersThatWantToPlay = new ArrayList<>();
-        final TestUser aleks = new TestUser("Aleks", v -> null);
-        final TestUser kevin = new TestUser("Kevin", votes -> votes.stream().filter(p -> p.user() == aleks).findFirst().orElse(null));
-        final TestUser peter = new TestUser("Peter", votes -> votes.stream().filter(p -> p.user() == kevin).findFirst().orElse(null));
-        final TestUser lisa = new TestUser("Lisa", votes -> votes.stream().filter(p -> p.user() == kevin).findFirst().orElse(null));
+        final TestUser aleks = new TestUser("Aleks", v -> false);
+        final TestUser kevin = new TestUser("Kevin", voteUser(aleks));
+        final TestUser peter = new TestUser("Peter", voteUser(kevin));
+        final TestUser lisa = new TestUser("Lisa", voteUser(kevin));
         usersThatWantToPlay.add(kevin);
         usersThatWantToPlay.add(aleks);
         usersThatWantToPlay.add(peter);
@@ -53,16 +54,19 @@ class RunningGameTest {
         assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks, peter, lisa);
     }
 
+    public Predicate<Player> voteUser(TestUser testUser) {
+        return p -> p.user().equals(testUser);
+    }
+
     @Test
     void testVillagersWithSameVotes(){
         final List<User> usersThatWantToPlay = new ArrayList<>();
-        final TestUser aleks = new TestUser("Aleks", v -> null);
-        final TestUser kevin = new TestUser("Kevin", votes -> votes.stream().filter(p -> p.user() == aleks).findFirst().orElse(null));
-        final TestUser peter = new TestUser("Peter", votes -> votes.stream().filter(p -> p.user() == kevin).findFirst().orElse(null));
-        final TestUser lisa = new TestUser("Lisa", votes -> votes.stream().filter(p -> p.user() == aleks).findFirst().orElse(null));
-        final TestUser sahra = new TestUser("Sahra", votes -> votes.stream().filter(p -> p.user() == kevin).findFirst().orElse(null));
-        final TestUser tina = new TestUser("Tina",votes -> votes.stream().filter(p -> p.user() == peter).findFirst()
-                .orElse(votes.stream().filter(p -> p.user() == kevin).findFirst().orElse(null)));
+        final TestUser aleks = new TestUser("Aleks", v -> false);
+        final TestUser kevin = new TestUser("Kevin", voteUser(aleks));
+        final TestUser peter = new TestUser("Peter", voteUser(kevin));
+        final TestUser lisa = new TestUser("Lisa", voteUser(aleks));
+        final TestUser sahra = new TestUser("Sahra", voteUser(kevin));
+        final TestUser tina = new TestUser("Tina", voteUser(peter));
 
 
         usersThatWantToPlay.add(kevin);
@@ -73,10 +77,9 @@ class RunningGameTest {
         usersThatWantToPlay.add(tina);
 
         final Game game = new Game(usersThatWantToPlay);
-        final VillagerMove villagerMove = new VillagerMove(game);
 
         assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks, peter, lisa, kevin,sahra,tina);
-        game.get_villagerMove().execute();
+        game.getVillagerMove().execute();
         assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks,peter,lisa,sahra,tina);
 
     }
@@ -86,14 +89,11 @@ class RunningGameTest {
         final List<User> usersThatWantToPlay = new ArrayList<>();
         final List<User> usersThatWantToBeWerewolfes = new ArrayList<>();
         final TestUser nostradamus;
-        final TestUser aleks = new TestUser("Aleks", v -> null);
-        final TestUser kevin = new TestUser("Kevin", votes -> votes.stream().filter(p -> p.user() == aleks).findFirst().orElse(null));
-        final TestUser peter = new TestUser("Peter", votes -> votes.stream().filter(p -> p.user() == kevin).findFirst().orElse(null));
-        final TestUser lisa = new TestUser("Lisa", votes -> votes.stream().filter(p -> p.user() == peter).findFirst().orElse(null));
-        nostradamus = new TestUser("Nostradamus",votes -> votes.stream().filter(p -> p.user() == kevin).findFirst().orElse(null));
-
-
-
+        final TestUser aleks = new TestUser("Aleks", v -> false);
+        final TestUser kevin = new TestUser("Kevin", voteUser(aleks));
+        final TestUser peter = new TestUser("Peter", voteUser(kevin));
+        final TestUser lisa = new TestUser("Lisa", voteUser(peter));
+        nostradamus = new TestUser("Nostradamus",voteUser(kevin));
 
         usersThatWantToPlay.add(kevin);
         usersThatWantToPlay.add(aleks);
@@ -102,12 +102,12 @@ class RunningGameTest {
         usersThatWantToBeWerewolfes.add(nostradamus);
 
         final Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes);
-        assertThat(game.getPlayers().stream().filter(p -> p.role().equals(Werewolf)).count()).isEqualTo(1);
-        assertThat(game.getPlayers().stream().filter(p -> p.role().equals(GameRole.Villager)).count()).isEqualTo(4);
-        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks, peter, lisa, kevin,nostradamus);
-        assertThat(game.getAlivePlayers().stream().filter(player -> player.user() == nostradamus)).extracting(Player::role).contains(Werewolf);
-        game.get_werewolfMove().execute();
-        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks, peter, lisa,nostradamus);
+        assertThat(game.getAliveWerewolfPlayers()).hasSize(1);
+        assertThat(game.getAliveVillagerPlayers()).hasSize(4);
+        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks, peter, lisa, kevin, nostradamus);
+        assertThat(game.getAliveWerewolfPlayers()).extracting(Player::user).containsOnly(nostradamus);
+        game.getWerewolfMove().execute();
+        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks, peter, lisa, nostradamus);
 
 
     }
@@ -115,50 +115,49 @@ class RunningGameTest {
     void testBaseGame(){
         final List<User> usersThatWantToPlay = new ArrayList<>();
         final List<User> usersThatWantToBeWerewolfes = new ArrayList<>();
-        final TestUser nostradamus;
-        // he is the Werewolf, Dies at the second Day
-        final TestUser aleks;
-        // dies in the first night
-        final TestUser kevin;
-        //Dies in the first Vote, is a werewolf too
-        final TestUser peter;
-        //Survives
-        final TestUser lisa;
-        //Survives
-        final TestUser tina;
-        //Dies in the second Night
-        lisa = new TestUser("Lisa");
-        aleks = new TestUser("Aleks");
-        kevin = new TestUser("Kevin");
-        peter = new TestUser("Peter");
-        nostradamus = new TestUser("Nostradamus");
 
-        tina = new TestUser("Tina");
-        nostradamus.set_votedPlayer(votes -> votes.stream().filter(p -> p.user() == aleks).findFirst().orElse(votes.stream().filter(p -> p.user() == tina).findFirst().orElse(votes.stream().filter(p -> p.user() == lisa).findFirst().orElse(null))));
-        kevin.set_votedPlayer(votes -> votes.stream().filter(p -> p.user() == aleks).findFirst().orElse(votes.stream().filter(p -> p.user() == tina).findFirst().orElse(null)));
-        aleks.set_votedPlayer(votes -> votes.stream().filter(p -> p.user() == nostradamus).findFirst().orElse(null));
-        lisa.set_votedPlayer(votes -> votes.stream().filter(p -> p.user() == kevin).findFirst().orElse(votes.stream().filter(p -> p.user() == nostradamus).findFirst().orElse(null)));
-        peter.set_votedPlayer(votes -> votes.stream().filter(p -> p.user() == kevin).findFirst().orElse(votes.stream().filter(p -> p.user() == nostradamus).findFirst().orElse(null)));
-        tina.set_votedPlayer(votes -> votes.stream().filter(p -> p.user() == kevin).findFirst().orElse(votes.stream().filter(p -> p.user() == peter).findFirst().orElse(null)));
+        final TestUser villager3 = new TestUser("Lisa");
+        final TestUser villager1 = new TestUser("Aleks");
+        final TestUser villager2 = new TestUser("Peter");
+        final TestUser villager4 = new TestUser("Tina");
+        final TestUser werewolf1 = new TestUser("Kevin");
+        final TestUser werewolf2 = new TestUser("Nostradamus");
+
+        usersThatWantToBeWerewolfes.add(werewolf1);
+        usersThatWantToBeWerewolfes.add(werewolf2);
+        usersThatWantToPlay.add(villager1);
+        usersThatWantToPlay.add(villager2);
+        usersThatWantToPlay.add(villager3);
+        usersThatWantToPlay.add(villager4);
 
 
-
-
-        usersThatWantToPlay.add(aleks);
-        usersThatWantToBeWerewolfes.add(kevin);
-        usersThatWantToPlay.add(peter);
-        usersThatWantToPlay.add(lisa);
-        usersThatWantToPlay.add(tina);
-        usersThatWantToBeWerewolfes.add(nostradamus);
+        // test user erzeugen
+        // wen voten die test user beim nächsten zug?
+        // zug ausführen -> playround
+        // wen voten die test user beim nächsten zug?
+        // zug ausführen -> playround
+        // wen voten die test user beim nächsten zug?
 
         final Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes);
-        assertThat(game.getPlayers().stream().filter(p -> p.role().equals(Werewolf)).count()).isEqualTo(2);
-        assertThat(game.getPlayers().stream().filter(p -> p.role().equals(GameRole.Villager)).count()).isEqualTo(4);
-        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks, peter, lisa, kevin,nostradamus,tina);
-        assertThat(game.getAliveWerewolfPlayers()).extracting(Player::user).containsOnly(kevin,nostradamus);
-        game.playStandardRound();
-        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(lisa, peter);
 
+        // first round is played at night -> so only werewolfs are allowed to vote
+        werewolf1.changeVote(voteUser(villager1));
+        werewolf2.changeVote(voteUser(villager1));
+        assertThat(game.playStandardRound())
+              .describedAs("Game has finished too early.")
+              .isFalse();
+        assertThat(game.getKilledPlayers()).extracting(Player::user).containsOnly(villager1);
+
+        // second round is played at day -> so all villagers are allowed to vote
+        villager2.changeVote(voteUser(werewolf1));
+        villager3.changeVote(voteUser(werewolf1));
+        villager4.changeVote(voteUser(villager4));
+        werewolf1.changeVote(voteUser(villager2));
+        werewolf2.changeVote(voteUser(villager3));
+        assertThat(game.playStandardRound())
+              .describedAs("Game has finished too early.")
+              .isFalse();
+        assertThat(game.getKilledPlayers()).extracting(Player::user).containsOnly(villager1, werewolf1);
     }
 
 

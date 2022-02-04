@@ -59,8 +59,6 @@ public class Game {
 
     }
     public Game(final List<User> usersThatWantToPlay,final List<User> usersThatWantToBeWerewolfes) {
-
-
         isDay = false;
         final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size()+ usersThatWantToBeWerewolfes.size());
         int werewolfsSelected = 0;
@@ -92,22 +90,20 @@ public class Game {
 
     }
 
+    public List<Player> getKilledPlayers() {
+        return _playersPlayingTheGame.stream().filter(Player::isDead).collect(Collectors.toList());
+    }
 
-
-    public void playStandardRound() {
+    public boolean playStandardRound() {
         
         WinningCondition fulfilledWinningCondition = null;
 
-        while (fulfilledWinningCondition == null) {
 
 
-        if (isDay == true) {
+        if ( isDay ) {
             _villagerMove.execute();
-
-
         } else {
             _werewolfMove.execute();
-
         }
         changeDayTime();
         // spielen wir Tag oder Nacht?
@@ -115,18 +111,18 @@ public class Game {
         // -> oder ist die Runde fertig?
         // -> wie findet eine Abstimmung statt?
         // -> wie notifiziert das spiel die einzelnen Spieler?
-            
-
 
         fulfilledWinningCondition = _winConditions.stream().filter(c -> c.isSatisfied(this)).findAny().orElse(null );
-        }
+
         if (fulfilledWinningCondition != null) {
             getPlayers().forEach(player -> player.user().informAboutGameEnd());
             // alle player notifizieren
             // game schließen
+            return true;
         }
         else {
-            playStandardRound();
+            return false;
+            //playStandardRound();
         }
     }
 
@@ -143,10 +139,10 @@ public class Game {
         return _playersPlayingTheGame;
     }
 
-    public GameMove get_villagerMove() {
+    public GameMove getVillagerMove() {
         return _villagerMove;
     }
-    public GameMove get_werewolfMove(){
+    public GameMove getWerewolfMove(){
         return _werewolfMove;
     }
 

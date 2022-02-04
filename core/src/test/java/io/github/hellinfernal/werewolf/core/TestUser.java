@@ -6,22 +6,25 @@ import io.github.hellinfernal.werewolf.core.user.User;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.Predicate;
 
 
 public class TestUser implements User {
     private final String                       _name;
-    private Function<Set<Player>,Player> _votedPlayer;
+    private Predicate<Player> _vote;
 
-    public TestUser(final String name, final Function<Set<Player>,Player> votedPlayer ) {
+    public TestUser(final String name, final  Predicate<Player> vote ) {
         _name = name;
-        _votedPlayer = votedPlayer;
+        _vote = vote == null ? p -> false : vote;
     }
-    public void set_votedPlayer(Function<Set<Player>,Player> votedPlayer){
-        _votedPlayer = votedPlayer;
-    }
+
     public TestUser(final String name){
         _name = name;
+        _vote = p -> false;
+    }
+
+    public void changeVote(Predicate<Player> vote){
+        _vote = vote;
     }
 
 
@@ -31,7 +34,7 @@ public class TestUser implements User {
     }
 
     public TestUser() {
-        this(UUID.randomUUID().toString(), v -> null);
+        this(UUID.randomUUID().toString(), v -> false);
     }
 
 
@@ -46,15 +49,20 @@ public class TestUser implements User {
 
     }
 
-
     @Override
-    public Player requestVillagerVote(Set<Player> potentialTargets) {
-        return _votedPlayer.apply(potentialTargets);
+    public Player requestVillagerVote(Set<Player> playersToVoteFrom) {
+        return playersToVoteFrom.stream()
+              .filter(_vote)
+              .findFirst()
+              .orElse(null);
     }
 
     @Override
-    public Player requestWerewolfVote(Set<Player> potentialTargets) {
-        return _votedPlayer.apply(potentialTargets);
+    public Player requestWerewolfVote(Set<Player> playersToVoteFrom) {
+        return playersToVoteFrom.stream()
+              .filter(_vote)
+              .findFirst()
+              .orElse(null);
     }
 
     @Override
