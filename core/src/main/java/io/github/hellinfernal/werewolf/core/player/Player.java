@@ -10,9 +10,7 @@ public interface Player {
     GameRole role();
     EnumSet<SpecialRole> specialRoles();
 
-    default boolean isWitch() {
-        return specialRoles().stream().anyMatch(e -> e.equals(SpecialRole.Witch));
-    }
+
 
     void grantSpecialRole(final SpecialRole role );
     void denySpecialRole(final SpecialRole role );
@@ -25,5 +23,10 @@ public interface Player {
 
     void kill();
 
+    void revive();
+    //Sets isAlive to true
+
     User user();
+
+
 }

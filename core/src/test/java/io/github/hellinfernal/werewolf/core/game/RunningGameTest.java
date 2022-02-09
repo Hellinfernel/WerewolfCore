@@ -2,13 +2,14 @@ package io.github.hellinfernal.werewolf.core.game;
 
 import io.github.hellinfernal.werewolf.core.Game;
 import io.github.hellinfernal.werewolf.core.TestUser;
+import io.github.hellinfernal.werewolf.core.player.GamePlayer;
 import io.github.hellinfernal.werewolf.core.player.Player;
 import io.github.hellinfernal.werewolf.core.role.GameRole;
+import io.github.hellinfernal.werewolf.core.role.SpecialRole;
 import io.github.hellinfernal.werewolf.core.user.User;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.function.Predicate;
 
 import static io.github.hellinfernal.werewolf.core.role.GameRole.Werewolf;
@@ -215,6 +216,34 @@ class RunningGameTest {
                 .isTrue();
 
         assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(villager3,villager4);
+
+
+
+
+    }
+    @Test
+    void witchTest(){
+        final List<User> usersThatWantToPlay = new ArrayList<>();
+        final List<User> usersThatWantToBeWerewolfes = new ArrayList<>();
+        final Map<SpecialRole,User> usersThatWantToBeWitches= Collections.synchronizedMap(new EnumMap<SpecialRole,User>(SpecialRole.class));
+
+        final TestUser villager1 = new TestUser("Aleks");
+        final TestUser werewolf1 = new TestUser("Nostradamus");
+        final TestUser witch1 = new TestUser("Mandy");
+
+        usersThatWantToPlay.add(villager1);
+        usersThatWantToBeWerewolfes.add(werewolf1);
+        usersThatWantToBeWitches.put(SpecialRole.Witch,witch1);
+
+        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeWitches);
+
+        werewolf1.changeVote(voteUser(villager1));
+
+        game.getWerewolfMove().execute();
+
+        assertThat(game.getKilledPlayers()).extracting(Player::user).contains(villager1);
+
+        game.getWitchMove1.execute();
 
 
 

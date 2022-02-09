@@ -20,4 +20,6 @@ public interface User {
     void informAboutResultOfVillagerVote(Player killedPlayer);
 
     void informAboutGameEnd();
+
+    boolean requestDecisionAboutSavingLastKilledPlayer(Player lastKilledGuy);
 }

@@ -4,14 +4,13 @@ import io.github.hellinfernal.werewolf.core.game.*;
 import io.github.hellinfernal.werewolf.core.player.GamePlayer;
 import io.github.hellinfernal.werewolf.core.player.Player;
 import io.github.hellinfernal.werewolf.core.role.GameRole;
+import io.github.hellinfernal.werewolf.core.role.SpecialRole;
 import io.github.hellinfernal.werewolf.core.user.User;
 import io.github.hellinfernal.werewolf.core.winningcondition.VillagerWinningCondition;
 import io.github.hellinfernal.werewolf.core.winningcondition.WerewolfWinningCondition;
 import io.github.hellinfernal.werewolf.core.winningcondition.WinningCondition;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static io.github.hellinfernal.werewolf.core.role.GameRole.Villager;
@@ -35,6 +34,9 @@ public class Game {
 
     private final GameMove _werewolfMove = new WerewolfMove(this);
     private final GameMove _villagerMove = new VillagerMove(this);
+
+    private final GameMove _witchMove1 = new WitchMove1(this);
+    private final GameMove _witchMove2 = new WitchMove2(this);
 
     private GameRound _activeRound = _nightRound;
     private GameMove _activeMove = _werewolfMove;
@@ -89,6 +91,51 @@ public class Game {
         }
 
     }
+    public Game(final List<User> usersThatWantToPlay, final List<User> usersThatWantToBeWerewolfes, final Map<SpecialRole,User> PlayersWithASpecialRole) {
+        isDay = false;
+        final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size()+ usersThatWantToBeWerewolfes.size());
+        int werewolfsSelected = 0;
+
+        for (Map.Entry<SpecialRole, User> entry : PlayersWithASpecialRole.entrySet()) {
+            SpecialRole s = entry.getKey();
+            User u = entry.getValue();
+            if (s._linkedCoreRole == Werewolf) {
+                werewolfsSelected++;
+            }
+
+
+                _playersPlayingTheGame.add(new GamePlayer(s._linkedCoreRole, u, s));
+
+        }
+
+        if (usersThatWantToBeWerewolfes.size() - werewolfsSelected > amountOfWerewolfs){
+            throw new RuntimeException("You need a bigger game");
+        }
+
+        for (final User user : usersThatWantToBeWerewolfes){
+            GameRole gameRole;
+            gameRole = Werewolf;
+            werewolfsSelected++;
+            final Player player = new GamePlayer(gameRole,user);
+            _playersPlayingTheGame.add(player);
+        }
+
+
+        Collections.shuffle(usersThatWantToPlay);
+
+        for (final User user : usersThatWantToPlay) {
+            GameRole gameRole;
+            if (werewolfsSelected < amountOfWerewolfs) {
+                gameRole = Werewolf;
+                werewolfsSelected++;
+            } else {
+                gameRole = GameRole.Villager;
+            }
+            final Player player = new GamePlayer(gameRole, user);
+            _playersPlayingTheGame.add(player);
+        }
+
+    }
 
     public List<Player> getKilledPlayers() {
         return _playersPlayingTheGame.stream().filter(Player::isDead).collect(Collectors.toList());
@@ -104,6 +151,8 @@ public class Game {
             _villagerMove.execute();
         } else {
             _werewolfMove.execute();
+            _witchMove1.execute();
+            _witchMove2.execute();
         }
         changeDayTime();
         // spielen wir Tag oder Nacht?
@@ -156,5 +205,17 @@ public class Game {
     public List<Player> getAliveVillagerPlayers(){
         return getPlayers().stream().filter(player -> player.role() == Villager).filter(Player::isAlive).collect(Collectors.toList());
 
+    }
+
+    public Player getSpecialClassPlayer(SpecialRole role) {
+        return getPlayers().stream().filter(player -> player.specialRoles().contains(SpecialRole.Witch)).findFirst().orElse(null);
+    }
+
+    public GameMove get_witchMove1() {
+        return _witchMove1;
+    }
+
+    public GameMove get_witchMove2() {
+        return _witchMove2;
     }
 }
