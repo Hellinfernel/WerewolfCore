@@ -59,7 +59,7 @@ class RunningGameTest {
         return p -> p.user().equals(testUser);
     }
     public Predicate<Player> voteUser(List<TestUser> testUsers){
-        return p -> testUsers.stream().filter(u -> u.equals(p)).findFirst().isPresent();
+        return p -> testUsers.stream().anyMatch(u -> u.equals(p.user()));
     }
 
     /*@Test

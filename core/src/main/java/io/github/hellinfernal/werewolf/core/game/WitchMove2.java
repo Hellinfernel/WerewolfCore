@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -27,10 +28,14 @@ public class WitchMove2 implements GameMove{
     }
     @Override
     public void execute() {
+        Optional<Player> playerWithWitchRole = _game.getSpecialClassPlayer(SpecialRole.Witch);
+        if (playerWithWitchRole.isEmpty()) {
+            return;
+        }
         _votesByPlayer.clear();
         _voters.clear();
         _game.getAlivePlayers().forEach(player -> _votesByPlayer.put(player, new AtomicLong()));
-        _voters.add(_game.getSpecialClassPlayer(SpecialRole.Witch));
+        _voters.add(playerWithWitchRole.get());
 
         _voters.forEach(voters -> voteProcess(voters,_votesByPlayer));
         final AtomicReference<Player> highestVotedPlayer = new AtomicReference<>(null);
@@ -74,12 +79,6 @@ public class WitchMove2 implements GameMove{
                     }
                 }
             });
-
-
-
-
-
-
         }
         //checks if there are more than one player with the most votes
         highestVotedPlayer.get().kill();

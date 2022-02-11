@@ -154,7 +154,9 @@ public class Game {
             _villagerMove.execute();
         } else {
             _werewolfMove.execute();
+
             _witchMove1.execute();
+
             _witchMove2.execute();
         }
         changeDayTime();
@@ -210,8 +212,8 @@ public class Game {
 
     }
 
-    public Player getSpecialClassPlayer(SpecialRole role) {
-        return getPlayers().stream().filter(player -> player.specialRoles().contains(SpecialRole.Witch)).findFirst().orElse(null);
+    public Optional<Player> getSpecialClassPlayer(SpecialRole role) {
+        return getPlayers().stream().filter(player -> player.specialRoles().contains(role)).findFirst();
     }
 
     public GameMove getWitchMove1() {
