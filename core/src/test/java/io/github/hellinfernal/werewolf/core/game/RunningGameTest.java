@@ -7,6 +7,8 @@ import io.github.hellinfernal.werewolf.core.player.Player;
 import io.github.hellinfernal.werewolf.core.role.GameRole;
 import io.github.hellinfernal.werewolf.core.role.SpecialRole;
 import io.github.hellinfernal.werewolf.core.user.User;
+
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
@@ -115,7 +117,9 @@ class RunningGameTest {
 
 
     }
-    @Test
+
+
+    @RepeatedTest(value = 1000)
     void testSecondBallot(){
         //Tests if the double vote feature works.
         final List<User> usersThatWantToPlay = new ArrayList<>();
