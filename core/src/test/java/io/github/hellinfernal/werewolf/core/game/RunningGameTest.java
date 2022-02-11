@@ -238,15 +238,15 @@ class RunningGameTest {
         Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeWitches);
 
         werewolf1.changeVote(voteUser(villager1));
+        witch1.changeVote(voteUser(villager1));
 
         game.getWerewolfMove().execute();
 
-        assertThat(game.getKilledPlayers()).extracting(Player::user).contains(villager1);
+        assertThat(game.getLastKilledPlayer()).extracting(Player::user).isNotNull().isEqualTo(villager1);
 
-        game.getWitchMove1.execute();
+        game.getWitchMove1().execute();
 
-
-
+        assertThat(game.getLastKilledPlayer()).isNull();
 
     }
 

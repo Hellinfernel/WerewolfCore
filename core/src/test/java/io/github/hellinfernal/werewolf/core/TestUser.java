@@ -89,6 +89,6 @@ public class TestUser implements User {
 
     @Override
     public boolean requestDecisionAboutSavingLastKilledPlayer(Player lastKilledGuy) {
-        if (lastKilledGuy == _vote)
+        return _vote.test(lastKilledGuy);
     }
 }

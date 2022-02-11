@@ -103,7 +103,6 @@ public class Game {
                 werewolfsSelected++;
             }
 
-
                 _playersPlayingTheGame.add(new GamePlayer(s._linkedCoreRole, u, s));
 
         }
@@ -139,6 +138,10 @@ public class Game {
 
     public List<Player> getKilledPlayers() {
         return _playersPlayingTheGame.stream().filter(Player::isDead).collect(Collectors.toList());
+    }
+
+    public Player getLastKilledPlayer() {
+        return _playersPlayingTheGame.stream().filter(Player::isDead).max(Comparator.comparing(k -> k.killed().get())).orElse(null);
     }
 
     public boolean playStandardRound() {
@@ -211,11 +214,11 @@ public class Game {
         return getPlayers().stream().filter(player -> player.specialRoles().contains(SpecialRole.Witch)).findFirst().orElse(null);
     }
 
-    public GameMove get_witchMove1() {
+    public GameMove getWitchMove1() {
         return _witchMove1;
     }
 
-    public GameMove get_witchMove2() {
+    public GameMove getWitchMove2() {
         return _witchMove2;
     }
 }

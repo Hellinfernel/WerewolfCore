@@ -1,6 +1,8 @@
 package io.github.hellinfernal.werewolf.core.player;
 
+import java.time.Instant;
 import java.util.EnumSet;
+import java.util.Optional;
 
 import io.github.hellinfernal.werewolf.core.role.GameRole;
 import io.github.hellinfernal.werewolf.core.role.SpecialRole;
@@ -22,6 +24,7 @@ public interface Player {
     }
 
     void kill();
+    Optional<Instant> killed();
 
     void revive();
     //Sets isAlive to true
