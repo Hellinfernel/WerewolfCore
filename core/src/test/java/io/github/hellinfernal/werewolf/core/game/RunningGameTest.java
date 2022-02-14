@@ -242,7 +242,7 @@ class RunningGameTest {
         Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeWitches);
 
         werewolf1.changeVote(voteUser(villager1));
-        witch1.changeVote(voteUser(villager1));
+        witch1.set_reanimationVote(voteUser(villager1));
 
         game.getWerewolfMove().execute();
 
@@ -251,6 +251,84 @@ class RunningGameTest {
         game.getWitchMove1().execute();
 
         assertThat(game.getLastKilledPlayer()).isNull();
+
+    }
+    @RepeatedTest(100)
+    void BigGameTest(){
+        final List<User> usersThatWantToPlay = new ArrayList<>();
+        final List<User> usersThatWantToBeWerewolfes = new ArrayList<>();
+        final Map<SpecialRole,User> usersThatWantToBeWitches= Collections.synchronizedMap(new EnumMap<SpecialRole,User>(SpecialRole.class));
+
+        final TestUser villager1 = new TestUser("Aleks");
+        // dies in the first Night
+        final TestUser villager2 = new TestUser("Chris");
+        final TestUser villager3 = new TestUser("Ismael");
+        final TestUser villager4 = new TestUser("Saskia");
+        final TestUser villager5 = new TestUser("Tobi");
+        final TestUser werewolf1 = new TestUser("Nostradamus");
+        final TestUser werewolf2 = new TestUser("Alina");
+        final TestUser witch1 = new TestUser("Mandy");
+
+        usersThatWantToPlay.add(villager1);
+        usersThatWantToPlay.add(villager2);
+        usersThatWantToPlay.add(villager3);
+        usersThatWantToPlay.add(villager4);
+        usersThatWantToBeWerewolfes.add(werewolf1);
+        usersThatWantToBeWerewolfes.add(werewolf2);
+        usersThatWantToBeWitches.put(SpecialRole.Witch,witch1);
+
+        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeWitches);
+        assertThat(game.getPlayers()).extracting(Player::user).contains(villager1,villager2,villager3,villager4,werewolf1,werewolf2,witch1);
+
+        werewolf1.changeVote(voteUser(villager1));
+        werewolf2.changeVote(voteUser(villager1));
+
+
+        witch1.set_reanimationVote(voteUser(villager1));
+        assertThat(game.isDay()).isFalse();
+
+        assertThat(game.playStandardRound())
+                .describedAs("Game has finished")
+                .isFalse();
+
+        assertThat(game.getKilledPlayers()).isEmpty();
+
+
+
+
+
+
+
+
+
+
+
+
+    }
+    @RepeatedTest(100)
+    void testWitchMove2(){
+        final TestUser villager1 = new TestUser("Aleks");
+        final TestUser villager2 = new TestUser("Chris");
+        final TestUser werewolf1 = new TestUser("Nostradamus");
+        final TestUser witch1 = new TestUser("Mandy");
+        final List<User> usersThatWantToPlay = new ArrayList<>();
+        final List<User> usersThatWantToBeWerewolfes = new ArrayList<>();
+        final Map<SpecialRole,User> usersThatWantToBeWitches= Collections.synchronizedMap(new EnumMap<SpecialRole,User>(SpecialRole.class));
+
+        usersThatWantToPlay.add(villager1);
+        usersThatWantToPlay.add(villager2);
+        usersThatWantToBeWerewolfes.add(werewolf1);
+        usersThatWantToBeWitches.put(SpecialRole.Witch,witch1);
+
+        witch1.set_killPotionVote(voteUser(villager2));
+
+
+        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeWitches);
+
+        game.getWitchMove2().execute();
+
+        assertThat(game.getKilledPlayers()).extracting(Player::user).containsOnly(villager2);
+
 
     }
 

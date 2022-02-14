@@ -12,6 +12,9 @@ import java.util.function.Predicate;
 public class TestUser implements User {
     private final String                       _name;
     private Predicate<Player> _vote;
+    private Predicate<Player> _reanimationVote = p -> false;
+    private Predicate<Player> _killPotionVote = p -> false;
+
 
     public TestUser(final String name, final  Predicate<Player> vote ) {
         _name = name;
@@ -32,6 +35,10 @@ public class TestUser implements User {
     public TestUser(final String name){
         _name = name;
         _vote = p -> false;
+    }
+
+    public void set_reanimationVote(Predicate<Player> reanimationVote){
+        _reanimationVote = reanimationVote;
     }
 
     public void changeVote(Predicate<Player> vote){
@@ -89,6 +96,18 @@ public class TestUser implements User {
 
     @Override
     public boolean requestDecisionAboutSavingLastKilledPlayer(Player lastKilledGuy) {
-        return _vote.test(lastKilledGuy);
+        return _reanimationVote.test(lastKilledGuy);
+    }
+
+    @Override
+    public Player requestKillPotionUse(Set<Player> possibleVictims) {
+        return possibleVictims.stream()
+                .filter(_killPotionVote)
+                .findFirst()
+                .orElse(null);
+    }
+
+    public void set_killPotionVote(Predicate<Player> killPotionVote) {
+        _killPotionVote = killPotionVote;
     }
 }

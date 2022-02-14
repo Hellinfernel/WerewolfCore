@@ -22,4 +22,6 @@ public interface User {
     void informAboutGameEnd();
 
     boolean requestDecisionAboutSavingLastKilledPlayer(Player lastKilledGuy);
+
+    Player requestKillPotionUse(Set<Player> keySet);
 }

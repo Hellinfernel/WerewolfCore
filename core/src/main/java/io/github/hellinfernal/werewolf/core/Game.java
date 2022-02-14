@@ -200,6 +200,10 @@ public class Game {
         return _werewolfMove;
     }
 
+    public boolean isDay(){
+        return isDay;
+    }
+
 
     public List<Player> getAlivePlayers() {
         return getPlayers().stream().filter(Player::isAlive).collect(Collectors.toList());

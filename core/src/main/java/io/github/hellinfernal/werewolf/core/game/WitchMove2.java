@@ -4,11 +4,7 @@ import io.github.hellinfernal.werewolf.core.Game;
 import io.github.hellinfernal.werewolf.core.player.Player;
 import io.github.hellinfernal.werewolf.core.role.SpecialRole;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -41,7 +37,15 @@ public class WitchMove2 implements GameMove{
         final AtomicReference<Player> highestVotedPlayer = new AtomicReference<>(null);
         AtomicLong votesHighest = new AtomicLong();
 
-        _votesByPlayer.forEach((player, votes) -> {
+        highestVotedPlayer.setPlain(_votesByPlayer.entrySet()
+                .stream()
+                .max(Comparator.comparingLong(p -> p.getValue()
+                        .get()))
+                .get()
+                .getKey());
+        votesHighest.set(_votesByPlayer.get(highestVotedPlayer.get()).get());
+
+      /*  _votesByPlayer.forEach((player, votes) -> {
             //finds the player who has the most votes
             if (highestVotedPlayer.get() == null) {
                 highestVotedPlayer.set(player);
@@ -52,9 +56,9 @@ public class WitchMove2 implements GameMove{
                     highestVotedPlayer.set(player);
                 }
             }
-        });
+        }); */
 
-        if (_votesByPlayer.entrySet()
+     /*   if (_votesByPlayer.entrySet()
                 .stream()
                 .filter(p -> p.getValue().get() == votesHighest.get())
                 .count() > 1){
@@ -79,13 +83,16 @@ public class WitchMove2 implements GameMove{
                     }
                 }
             });
-        }
+        } */
         //checks if there are more than one player with the most votes
-        highestVotedPlayer.get().kill();
+        if(votesHighest.get() > 0){
+            highestVotedPlayer.get().kill();
+        }
+
     }
     private void voteProcess(Player player, Map<Player, AtomicLong> voteMap) {
         //unsure if that actually changes the overgiven Map
-        final Player votedPlayer = player.user().requestVillagerVote(voteMap.keySet());
+        final Player votedPlayer = player.user().requestKillPotionUse(voteMap.keySet());
         if (votedPlayer == null) {
             return;
         }

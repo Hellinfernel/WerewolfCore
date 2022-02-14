@@ -74,4 +74,9 @@ public class GamePlayer implements Player {
     public User user() {
         return _user;
     }
+
+    @Override
+    public String toString(){
+        return user().toString();
+    }
 }
