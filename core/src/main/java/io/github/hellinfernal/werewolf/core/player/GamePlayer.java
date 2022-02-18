@@ -1,10 +1,10 @@
 package io.github.hellinfernal.werewolf.core.player;
 
 import java.time.Instant;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Consumer;
 
+import io.github.hellinfernal.werewolf.core.Game;
 import io.github.hellinfernal.werewolf.core.role.GameRole;
 import io.github.hellinfernal.werewolf.core.role.SpecialRole;
 import io.github.hellinfernal.werewolf.core.user.User;
@@ -12,22 +12,32 @@ import io.github.hellinfernal.werewolf.core.user.User;
 public class GamePlayer implements Player {
     private final GameRole _role;
     private final User _user;
+    private final Game _game;
+
     private EnumSet<SpecialRole> _specialRoles = EnumSet.noneOf(SpecialRole.class);
     private Optional<Instant>    _killed = Optional.empty();
+    private List<Consumer<Game>> _deathTriggers = new ArrayList<>();
 
-    public GamePlayer(final GameRole role, final User user) {
+    public GamePlayer(final Game game,final GameRole role, final User user) {
         _role = role;
         _user = user;
+        _game = game;
     }
-    public GamePlayer(final GameRole role, final User user,EnumSet<SpecialRole> specialRoles) {
+    public GamePlayer(final Game game,final GameRole role, final User user,EnumSet<SpecialRole> specialRoles) {
         _role = role;
         _user = user;
         _specialRoles.addAll(specialRoles);
+        _game = game;
     }
-    public GamePlayer(final GameRole role, final User user,SpecialRole specialRoles) {
+    public GamePlayer(final Game game,final GameRole role, final User user,SpecialRole specialRoles) {
         _role = role;
         _user = user;
         _specialRoles.add(specialRoles);
+        _game = game;
+    }
+
+    public EnumSet<SpecialRole> get_specialRoles() {
+        return _specialRoles;
     }
 
     @Override
@@ -57,7 +67,16 @@ public class GamePlayer implements Player {
 
     @Override
     public void kill() {
-        _killed = Optional.of(Instant.now());
+        if (!_killed.isPresent()) {
+            _killed = Optional.of(Instant.now());
+            _deathTriggers.stream().forEach(consumer -> consumer.accept(_game));
+
+            try {
+                Thread.sleep(5);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override
@@ -73,6 +92,12 @@ public class GamePlayer implements Player {
     @Override
     public User user() {
         return _user;
+    }
+
+    @Override
+    public void addDeathTrigger(Consumer<Game> consumer) {
+        _deathTriggers.add(consumer);
+
     }
 
     @Override

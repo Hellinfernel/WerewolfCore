@@ -8,6 +8,7 @@ import io.github.hellinfernal.werewolf.core.role.GameRole;
 import io.github.hellinfernal.werewolf.core.role.SpecialRole;
 import io.github.hellinfernal.werewolf.core.user.User;
 
+import io.github.hellinfernal.werewolf.core.winningcondition.AmorLoversWinningCondition;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
@@ -260,14 +261,16 @@ class RunningGameTest {
         final Map<SpecialRole,User> usersThatWantToBeWitches= Collections.synchronizedMap(new EnumMap<SpecialRole,User>(SpecialRole.class));
 
         final TestUser villager1 = new TestUser("Aleks");
-        // dies in the first Night
+        // dies in the first Night, gets reanimated, dies again in the second night lol
         final TestUser villager2 = new TestUser("Chris");
+        //dies at the first day :D
         final TestUser villager3 = new TestUser("Ismael");
         final TestUser villager4 = new TestUser("Saskia");
-        final TestUser villager5 = new TestUser("Tobi");
+
         final TestUser werewolf1 = new TestUser("Nostradamus");
+        //dies in the second night because of the potion
         final TestUser werewolf2 = new TestUser("Alina");
-        final TestUser witch1 = new TestUser("Mandy");
+        final TestUser witch1 = new TestUser("Hexe");
 
         usersThatWantToPlay.add(villager1);
         usersThatWantToPlay.add(villager2);
@@ -288,10 +291,72 @@ class RunningGameTest {
         assertThat(game.isDay()).isFalse();
 
         assertThat(game.playStandardRound())
-                .describedAs("Game has finished")
+                .describedAs("Game has finished too early.")
                 .isFalse();
 
         assertThat(game.getKilledPlayers()).isEmpty();
+
+        werewolf1.changeVote(voteUser(villager2));
+        werewolf2.changeVote(voteUser(villager2));
+        villager1.changeVote(voteUser(villager2));
+        villager2.changeVote(voteUser(werewolf1));
+        villager3.changeVote(voteUser(werewolf1));
+        villager4.changeVote(voteUser(werewolf1));
+        List<TestUser> voteListWitch = new ArrayList<>();
+        voteListWitch.add(werewolf2);
+        voteListWitch.add(villager2);
+        witch1.changeVote(voteUser(voteListWitch));
+
+        assertThat(game.playStandardRound())
+                .describedAs("Game has finished too early.")
+                .isFalse();
+        assertThat(game.getLastKilledPlayer()).extracting(Player::user).isEqualTo(villager2);
+
+        werewolf1.changeVote(voteUser(villager1));
+        werewolf2.changeVote(voteUser(villager1));
+
+        witch1.set_killPotionVote(voteUser(werewolf1));
+
+        assertThat(game.playStandardRound())
+                .describedAs("Game has finished too early.")
+                .isFalse();
+        assertThat(game.getLastKilledPlayer()).extracting(Player::user).isEqualTo(werewolf1);
+        assertThat(game.getKilledPlayers()).extracting(Player::user).containsOnly(villager1,villager2,werewolf1);
+        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(villager3,villager4,werewolf2,witch1);
+        //this just exists because i want a overfew who is alive and who not :D
+
+        villager3.changeVote(voteUser(witch1));
+        villager4.changeVote(voteUser(witch1));
+        werewolf2.changeVote(voteUser(witch1));
+        witch1.changeVote(voteUser(werewolf2));
+
+
+        assertThat(game.playStandardRound())
+                .describedAs("Game Has finished")
+                .isFalse();
+
+        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(villager3,villager4,werewolf2);
+        assertThat(game.getLastKilledPlayer()).extracting(Player::user).isEqualTo(witch1);
+
+        werewolf2.changeVote(voteUser(villager3));
+
+        assertThat(game.playStandardRound())
+                .describedAs("Game Has finished")
+                .isTrue();
+        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(villager4,werewolf2);
+        assertThat(game.getLastKilledPlayer()).extracting(Player::user).isEqualTo(villager3);
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -330,7 +395,98 @@ class RunningGameTest {
         assertThat(game.getKilledPlayers()).extracting(Player::user).containsOnly(villager2);
 
 
+
+
     }
+
+    @Test
+    void amorTest(){
+        final TestUser villager1 = new TestUser("Aleks");
+        final TestUser villager2 = new TestUser("Chris");
+        final TestUser amor = new TestUser("Amor");
+        final TestUser werewolf = new TestUser("Nostradamus");
+
+        final List<User> usersThatWantToPlay = new ArrayList<>();
+        final List<User> usersThatWantToBeWerewolfes = new ArrayList<>();
+        final Map<SpecialRole,User> usersThatWantToBeAmors= Collections.synchronizedMap(new EnumMap<SpecialRole,User>(SpecialRole.class));
+
+        usersThatWantToPlay.add(villager1);
+        usersThatWantToPlay.add(villager2);
+        usersThatWantToBeWerewolfes.add(werewolf);
+        usersThatWantToBeAmors.put(SpecialRole.Amor,amor);
+
+        List<TestUser> listOfLovers = new ArrayList<>();
+        listOfLovers.add(villager1);
+        listOfLovers.add(werewolf);
+
+        amor.set_loverVote(voteUser(listOfLovers));
+
+
+        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeAmors);
+        game.get_AmorMove().execute();
+
+        assertThat(game.getPlayer(villager1).specialRoles()).containsOnly(SpecialRole.Lover);
+        assertThat(game.getPlayer(werewolf).specialRoles()).containsOnly(SpecialRole.Lover);
+
+        werewolf.changeVote(voteUser(villager2));
+
+
+
+        game.getWerewolfMove().execute();
+
+        AmorLoversWinningCondition winningCondition = new AmorLoversWinningCondition();
+
+        assertThat(winningCondition.isSatisfied(game)).isTrue();
+
+
+
+
+    }
+
+    @Test
+    void amorKillTest(){
+        final TestUser villager1 = new TestUser("Aleks");
+        final TestUser villager2 = new TestUser("Chris");
+        final TestUser amor = new TestUser("Amor");
+        final TestUser werewolf = new TestUser("Nostradamus");
+
+        final List<User> usersThatWantToPlay = new ArrayList<>();
+        final List<User> usersThatWantToBeWerewolfes = new ArrayList<>();
+        final Map<SpecialRole,User> usersThatWantToBeAmors= Collections.synchronizedMap(new EnumMap<SpecialRole,User>(SpecialRole.class));
+
+        usersThatWantToPlay.add(villager1);
+        usersThatWantToPlay.add(villager2);
+        usersThatWantToBeWerewolfes.add(werewolf);
+        usersThatWantToBeAmors.put(SpecialRole.Amor,amor);
+
+        List<TestUser> listOfLovers = new ArrayList<>();
+        listOfLovers.add(villager1);
+        listOfLovers.add(villager2);
+
+        amor.set_loverVote(voteUser(listOfLovers));
+
+
+        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeAmors);
+        game.get_AmorMove().execute();
+
+        assertThat(game.getPlayer(villager1).specialRoles()).containsOnly(SpecialRole.Lover);
+        assertThat(game.getPlayer(villager2).specialRoles()).containsOnly(SpecialRole.Lover);
+
+        werewolf.changeVote(voteUser(villager2));
+
+
+
+        game.getWerewolfMove().execute();
+
+        AmorLoversWinningCondition winningCondition = new AmorLoversWinningCondition();
+
+        assertThat(game.getKilledPlayers()).extracting(Player::user).containsOnly(villager1,villager2);
+
+
+
+
+    }
+
 
 
 }

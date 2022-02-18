@@ -11,6 +11,8 @@ import io.github.hellinfernal.werewolf.core.winningcondition.WerewolfWinningCond
 import io.github.hellinfernal.werewolf.core.winningcondition.WinningCondition;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static io.github.hellinfernal.werewolf.core.role.GameRole.Villager;
@@ -38,6 +40,8 @@ public class Game {
     private final GameMove _witchMove1 = new WitchMove1(this);
     private final GameMove _witchMove2 = new WitchMove2(this);
 
+    private final GameMove _AmorMove = new AmorMove(this);
+
     private GameRound _activeRound = _nightRound;
     private GameMove _activeMove = _werewolfMove;
 
@@ -55,11 +59,19 @@ public class Game {
             } else {
                 gameRole = GameRole.Villager;
             }
-            final Player player = new GamePlayer(gameRole, user);
+            final Player player = new GamePlayer(this,gameRole, user);
             _playersPlayingTheGame.add(player);
         }
 
     }
+
+    /**
+     *
+     * @param usersThatWantToPlay
+     * Contains users who have no prefered role
+     * @param usersThatWantToBeWerewolfes
+     * contains users who want to be Werewolfes
+     */
     public Game(final List<User> usersThatWantToPlay,final List<User> usersThatWantToBeWerewolfes) {
         isDay = false;
         final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size()+ usersThatWantToBeWerewolfes.size());
@@ -71,7 +83,7 @@ public class Game {
             GameRole gameRole;
             gameRole = Werewolf;
             werewolfsSelected++;
-            final Player player = new GamePlayer(gameRole,user);
+            final Player player = new GamePlayer(this,gameRole,user);
             _playersPlayingTheGame.add(player);
         }
 
@@ -86,11 +98,21 @@ public class Game {
             } else {
                 gameRole = GameRole.Villager;
             }
-            final Player player = new GamePlayer(gameRole, user);
+            final Player player = new GamePlayer(this,gameRole, user);
             _playersPlayingTheGame.add(player);
         }
 
     }
+
+    /**
+     *
+     * @param usersThatWantToPlay
+     *       Contains users who have no prefered role
+     *       @param usersThatWantToBeWerewolfes
+     *       contains users who want to be Werewolfes
+     * @param PlayersWithASpecialRole
+     * contains users who want a special role :D
+     */
     public Game(final List<User> usersThatWantToPlay, final List<User> usersThatWantToBeWerewolfes, final Map<SpecialRole,User> PlayersWithASpecialRole) {
         isDay = false;
         final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size()+ usersThatWantToBeWerewolfes.size());
@@ -103,7 +125,7 @@ public class Game {
                 werewolfsSelected++;
             }
 
-                _playersPlayingTheGame.add(new GamePlayer(s._linkedCoreRole, u, s));
+                _playersPlayingTheGame.add(new GamePlayer(this,s._linkedCoreRole, u, s));
 
         }
 
@@ -115,7 +137,7 @@ public class Game {
             GameRole gameRole;
             gameRole = Werewolf;
             werewolfsSelected++;
-            final Player player = new GamePlayer(gameRole,user);
+            final Player player = new GamePlayer(this,gameRole,user);
             _playersPlayingTheGame.add(player);
         }
 
@@ -130,7 +152,7 @@ public class Game {
             } else {
                 gameRole = GameRole.Villager;
             }
-            final Player player = new GamePlayer(gameRole, user);
+            final Player player = new GamePlayer(this,gameRole, user);
             _playersPlayingTheGame.add(player);
         }
 
@@ -141,7 +163,10 @@ public class Game {
     }
 
     public Player getLastKilledPlayer() {
-        return _playersPlayingTheGame.stream().filter(Player::isDead).max(Comparator.comparing(k -> k.killed().get())).orElse(null);
+        return _playersPlayingTheGame.stream()
+                .filter(Player::isDead)
+                .max(Comparator.comparing(k -> k.killed().get()))
+                .orElse(null);
     }
 
     public boolean playStandardRound() {
@@ -151,6 +176,7 @@ public class Game {
 
 
         if ( isDay ) {
+
             _villagerMove.execute();
         } else {
             _werewolfMove.execute();
@@ -216,8 +242,22 @@ public class Game {
 
     }
 
+    /**
+     *
+     * @return a Amor move ;D
+     */
+
+    public GameMove get_AmorMove() {
+        return _AmorMove;
+    }
+
     public Optional<Player> getSpecialClassPlayer(SpecialRole role) {
         return getPlayers().stream().filter(player -> player.specialRoles().contains(role)).findFirst();
+    }
+    public Player getPlayer(User user){
+        AtomicReference<Player> player = new AtomicReference<>();
+        getPlayers().stream().filter(x -> x.user() == user).findFirst().ifPresent(x -> player.set(x));
+        return player.get();
     }
 
     public GameMove getWitchMove1() {
@@ -226,5 +266,31 @@ public class Game {
 
     public GameMove getWitchMove2() {
         return _witchMove2;
+    }
+
+    /**
+    * Gets a Random Player. Shouldn't throw a Exception.
+     */
+    public Player getRandomPlayer() {
+        return getPlayers().stream().findAny().get();
+    }
+
+    /**
+     * Gets a Random Player, filtered with an predicate. Shouldn't throw a Exception too, except if the predicate is too restrictive
+     */
+    public Player getRandomPlayerWithCondition(Predicate<Player> predicate){
+        return getPlayers().stream().filter(predicate).findAny().orElseThrow();
+    }
+
+    /**
+     *
+     * @return a list where all Players with the called role are
+     */
+    public List<Player> getSpecialRolePlayers(SpecialRole specialRole){
+        List list = getPlayers().stream()
+                .filter(player -> player.specialRoles().contains(specialRole))
+                .collect(Collectors.toList());
+        return list;
+
     }
 }

@@ -4,6 +4,7 @@ import io.github.hellinfernal.werewolf.core.player.Player;
 import io.github.hellinfernal.werewolf.core.user.User;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -14,6 +15,7 @@ public class TestUser implements User {
     private Predicate<Player> _vote;
     private Predicate<Player> _reanimationVote = p -> false;
     private Predicate<Player> _killPotionVote = p -> false;
+    private Predicate<Player> _loverVote = p -> false;
 
 
     public TestUser(final String name, final  Predicate<Player> vote ) {
@@ -107,7 +109,29 @@ public class TestUser implements User {
                 .orElse(null);
     }
 
+    @Override
+    public void informAboutFallingInLove(Player lover) {
+        System.out.println("yo, you are in love with " + lover.toString() + " ,ok?");
+    }
+
+    @Override
+    public Player requestLover(List<Player> players) {
+        return players.stream()
+                .filter(_loverVote)
+                .findFirst()
+                .orElse(null);
+    }
+
     public void set_killPotionVote(Predicate<Player> killPotionVote) {
         _killPotionVote = killPotionVote;
+    }
+
+    /**
+     *
+     * sets the filter for requestLover
+     */
+    public void set_loverVote(Predicate<Player> filter){
+        _loverVote = filter;
+
     }
 }

@@ -2,6 +2,7 @@ package io.github.hellinfernal.werewolf.core.user;
 
 import io.github.hellinfernal.werewolf.core.player.Player;
 
+import java.util.List;
 import java.util.Set;
 
 public interface User {
@@ -24,4 +25,10 @@ public interface User {
     boolean requestDecisionAboutSavingLastKilledPlayer(Player lastKilledGuy);
 
     Player requestKillPotionUse(Set<Player> keySet);
+
+    void informAboutFallingInLove(Player lover);
+
+    Player requestLover(List<Player> players);
+
+
 }

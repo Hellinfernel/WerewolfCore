@@ -25,14 +25,16 @@ public class WitchMove1 implements GameMove {
         final Optional<Player> witch = _game.getSpecialClassPlayer(Witch);
 
         witch.ifPresent(playerWithWitchRole -> {
-            // The witch in the game
-            //Should be only called if the potion isnt used already
-            Player lastKilledGuy = _game.getLastKilledPlayer();
-            //the guy who is the latest killed guy. should be the last entry in the list
-            boolean shouldHeBeRevived = playerWithWitchRole.user().requestDecisionAboutSavingLastKilledPlayer(lastKilledGuy);
-            if ( shouldHeBeRevived ) {
-                lastKilledGuy.revive();
-                _witchesUsedRevivePotion.add(playerWithWitchRole);
+            if (!_witchesUsedRevivePotion.contains(witch.get())) {
+                // The witch in the game
+                //Should be only called if the potion isnt used already
+                Player lastKilledGuy = _game.getLastKilledPlayer();
+                //the guy who is the latest killed guy. should be the last entry in the list
+                boolean shouldHeBeRevived = playerWithWitchRole.user().requestDecisionAboutSavingLastKilledPlayer(lastKilledGuy);
+                if (shouldHeBeRevived) {
+                    lastKilledGuy.revive();
+                    _witchesUsedRevivePotion.add(playerWithWitchRole);
+                }
             }
         });
 
