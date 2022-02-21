@@ -1,6 +1,7 @@
 package io.github.hellinfernal.werewolf.core.player;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -14,6 +15,7 @@ import io.github.hellinfernal.werewolf.core.user.User;
 public interface Player {
     GameRole role();
     EnumSet<SpecialRole> specialRoles();
+
     
 
 

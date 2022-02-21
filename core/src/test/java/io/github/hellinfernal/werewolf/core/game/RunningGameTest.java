@@ -481,8 +481,28 @@ class RunningGameTest {
         AmorLoversWinningCondition winningCondition = new AmorLoversWinningCondition();
 
         assertThat(game.getKilledPlayers()).extracting(Player::user).containsOnly(villager1,villager2);
+    }
+    @Test
+    void HunterTest(){
+        final TestUser villager1 = new TestUser("Aleks");
+        final TestUser hunter = new TestUser("Olaf");
+        final TestUser werewolf = new TestUser("Nostradamus");
 
+        final List<User> usersThatWantToPlay = new ArrayList<>();
+        final List<User> usersThatWantToBeWerewolfes = new ArrayList<>();
+        final Map<SpecialRole,User> usersThatWantToBeHunters= Collections.synchronizedMap(new EnumMap<SpecialRole,User>(SpecialRole.class));
 
+        usersThatWantToPlay.add(villager1);
+        usersThatWantToBeWerewolfes.add(werewolf);
+        usersThatWantToBeHunters.put(SpecialRole.Hunter,hunter);
+
+        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeHunters);
+
+        werewolf.changeVote(voteUser(hunter));
+        hunter.set_hunterVote(voteUser(werewolf));
+
+        game.getWerewolfMove().execute();
+        assertThat(game.getLastKilledPlayer()).extracting(Player::user).isEqualTo(werewolf);
 
 
     }

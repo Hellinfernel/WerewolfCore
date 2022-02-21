@@ -12,6 +12,7 @@ import java.util.function.Predicate;
 
 public class TestUser implements User {
     private final String                       _name;
+    private Predicate<Player> _hunterVote;
     private Predicate<Player> _vote;
     private Predicate<Player> _reanimationVote = p -> false;
     private Predicate<Player> _killPotionVote = p -> false;
@@ -133,5 +134,13 @@ public class TestUser implements User {
     public void set_loverVote(Predicate<Player> filter){
         _loverVote = filter;
 
+    }
+
+    /**
+     * sets the filter for _hunterVote
+     * @param fitler the filter.
+     */
+    public void set_hunterVote(Predicate<Player> fitler){
+        _hunterVote = fitler;
     }
 }
