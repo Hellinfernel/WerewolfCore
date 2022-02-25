@@ -9,6 +9,8 @@
     <version>0.1.0-SNAPSHOT</version>
     <modules>
         <module>core</module>
+        <module>discord-bot-examples</module>
+        <module>discord-bot</module>
     </modules>
     <packaging>pom</packaging>
 
