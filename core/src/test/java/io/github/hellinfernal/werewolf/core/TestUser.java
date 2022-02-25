@@ -1,6 +1,7 @@
 package io.github.hellinfernal.werewolf.core;
 
 import io.github.hellinfernal.werewolf.core.player.Player;
+import io.github.hellinfernal.werewolf.core.player.PlayersInLove;
 import io.github.hellinfernal.werewolf.core.user.User;
 import org.jetbrains.annotations.NotNull;
 
@@ -8,6 +9,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 
 public class TestUser implements User {
@@ -123,15 +125,22 @@ public class TestUser implements User {
                 .orElse(null);
     }
 
-    public void set_killPotionVote(Predicate<Player> killPotionVote) {
+    @Override
+    public PlayersInLove requestLovers(final List<Player> players) {
+        final List<Player> lovers = players.stream()
+                .filter(_loverVote)
+                .collect(Collectors.toList());
+        return new PlayersInLove.InLove(lovers.get(0), lovers.get(1));
+    }
+
+    public void setKillPotionVote(Predicate<Player> killPotionVote) {
         _killPotionVote = killPotionVote;
     }
 
     /**
-     *
      * sets the filter for requestLover
      */
-    public void set_loverVote(Predicate<Player> filter){
+    public void setLoverVote(Predicate<Player> filter) {
         _loverVote = filter;
 
     }
@@ -140,7 +149,7 @@ public class TestUser implements User {
      * sets the filter for _hunterVote
      * @param fitler the filter.
      */
-    public void set_hunterVote(Predicate<Player> fitler){
+    public void setHunterVote(Predicate<Player> fitler) {
         _hunterVote = fitler;
     }
 }

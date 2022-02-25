@@ -2,12 +2,10 @@ package io.github.hellinfernal.werewolf.core.game;
 
 import io.github.hellinfernal.werewolf.core.Game;
 import io.github.hellinfernal.werewolf.core.TestUser;
-import io.github.hellinfernal.werewolf.core.player.GamePlayer;
 import io.github.hellinfernal.werewolf.core.player.Player;
 import io.github.hellinfernal.werewolf.core.role.GameRole;
 import io.github.hellinfernal.werewolf.core.role.SpecialRole;
 import io.github.hellinfernal.werewolf.core.user.User;
-
 import io.github.hellinfernal.werewolf.core.winningcondition.AmorLoversWinningCondition;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
@@ -315,7 +313,7 @@ class RunningGameTest {
         werewolf1.changeVote(voteUser(villager1));
         werewolf2.changeVote(voteUser(villager1));
 
-        witch1.set_killPotionVote(voteUser(werewolf1));
+        witch1.setKillPotionVote(voteUser(werewolf1));
 
         assertThat(game.playStandardRound())
                 .describedAs("Game has finished too early.")
@@ -385,7 +383,7 @@ class RunningGameTest {
         usersThatWantToBeWerewolfes.add(werewolf1);
         usersThatWantToBeWitches.put(SpecialRole.Witch,witch1);
 
-        witch1.set_killPotionVote(voteUser(villager2));
+        witch1.setKillPotionVote(voteUser(villager2));
 
 
         Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeWitches);
@@ -419,7 +417,7 @@ class RunningGameTest {
         listOfLovers.add(villager1);
         listOfLovers.add(werewolf);
 
-        amor.set_loverVote(voteUser(listOfLovers));
+        amor.setLoverVote(voteUser(listOfLovers));
 
 
         Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeAmors);
@@ -463,7 +461,7 @@ class RunningGameTest {
         listOfLovers.add(villager1);
         listOfLovers.add(villager2);
 
-        amor.set_loverVote(voteUser(listOfLovers));
+        amor.setLoverVote(voteUser(listOfLovers));
 
 
         Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeAmors);
@@ -499,7 +497,7 @@ class RunningGameTest {
         Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeHunters);
 
         werewolf.changeVote(voteUser(hunter));
-        hunter.set_hunterVote(voteUser(werewolf));
+        hunter.setHunterVote(voteUser(werewolf));
 
         game.getWerewolfMove().execute();
         assertThat(game.getLastKilledPlayer()).extracting(Player::user).isEqualTo(werewolf);
