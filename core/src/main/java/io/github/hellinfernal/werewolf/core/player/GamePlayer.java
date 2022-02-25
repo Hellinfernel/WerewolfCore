@@ -1,13 +1,16 @@
 package io.github.hellinfernal.werewolf.core.player;
 
-import java.time.Instant;
-import java.util.*;
-import java.util.function.Consumer;
-
 import io.github.hellinfernal.werewolf.core.Game;
 import io.github.hellinfernal.werewolf.core.role.GameRole;
 import io.github.hellinfernal.werewolf.core.role.SpecialRole;
 import io.github.hellinfernal.werewolf.core.user.User;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
 
 public class GamePlayer implements Player {
     private final GameRole _role;
@@ -15,6 +18,7 @@ public class GamePlayer implements Player {
     private final Game _game;
 
     private EnumSet<SpecialRole> _specialRoles = EnumSet.noneOf(SpecialRole.class);
+    // lets try nanosecond resolution (System.nanoTime())
     private Optional<Instant>    _killed = Optional.empty();
     private List<Consumer<Game>> _deathTriggers = new ArrayList<>();
 
@@ -71,6 +75,7 @@ public class GamePlayer implements Player {
             _killed = Optional.of(Instant.now());
             _deathTriggers.stream().forEach(consumer -> consumer.accept(_game));
 
+            // try nanosecond resolution instead of sleeping
             try {
                 Thread.sleep(5);
             } catch (InterruptedException e) {

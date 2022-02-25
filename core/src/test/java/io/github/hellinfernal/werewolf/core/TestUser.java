@@ -4,8 +4,8 @@ import io.github.hellinfernal.werewolf.core.player.Player;
 import io.github.hellinfernal.werewolf.core.user.User;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 
@@ -71,19 +71,19 @@ public class TestUser implements User {
     }
 
     @Override
-    public Player requestVillagerVote(Set<Player> playersToVoteFrom) {
+    public Player requestVillagerVote(Collection<Player> playersToVoteFrom) {
         return playersToVoteFrom.stream()
-              .filter(_vote)
-              .findFirst()
-              .orElse(null);
+                .filter(_vote)
+                .findFirst()
+                .orElse(null);
     }
 
     @Override
-    public Player requestWerewolfVote(Set<Player> playersToVoteFrom) {
+    public Player requestWerewolfVote(Collection<Player> playersToVoteFrom) {
         return playersToVoteFrom.stream()
-              .filter(_vote)
-              .findFirst()
-              .orElse(null);
+                .filter(_vote)
+                .findFirst()
+                .orElse(null);
     }
 
     @Override
@@ -103,7 +103,7 @@ public class TestUser implements User {
     }
 
     @Override
-    public Player requestKillPotionUse(Set<Player> possibleVictims) {
+    public Player requestKillPotionUse(Collection<Player> possibleVictims) {
         return possibleVictims.stream()
                 .filter(_killPotionVote)
                 .findFirst()
