@@ -21,8 +21,7 @@ public class VillagerMove implements GameMove {
 
       final VotingMachine votingMachine = new VotingMachine(alivePlayers, alivePlayers, (player, players) -> player.user().requestVillagerVote(players));
 
-      final Player votedPlayer = votingMachine.vote();
-      votedPlayer.kill();
+      votingMachine.voteHighest().ifPresent(Player::kill);
    }
 }
 

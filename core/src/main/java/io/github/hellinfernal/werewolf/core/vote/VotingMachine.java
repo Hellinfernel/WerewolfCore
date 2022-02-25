@@ -2,10 +2,7 @@ package io.github.hellinfernal.werewolf.core.vote;
 
 import io.github.hellinfernal.werewolf.core.player.Player;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -23,7 +20,7 @@ public class VotingMachine {
         playerSelection.forEach(p -> _playerVotes.computeIfAbsent(p, i -> new AtomicLong()));
     }
 
-    public Player vote() {
+    public Optional<Player> voteHighest() {
         _voters.forEach(voters -> voteProcess(voters, _playerVotes));
         final AtomicReference<Player> highestVotedPlayer = new AtomicReference<>(null);
         AtomicLong votesHighest = new AtomicLong();
@@ -68,7 +65,12 @@ public class VotingMachine {
             });
         }
         //checks if there are more than one player with the most votes
-        return highestVotedPlayer.get();
+        final Player highestVoted = highestVotedPlayer.get();
+        if (highestVoted == null) {
+            return Optional.empty();
+        }
+        final AtomicLong votes = _playerVotes.get(highestVoted);
+        return votes.get() > 0 ? Optional.of(highestVoted) : Optional.empty();
     }
 
     private void voteProcess(Player player, Map<Player, AtomicLong> voteMap) {
