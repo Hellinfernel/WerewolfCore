@@ -4,8 +4,7 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClientBuilder;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.EventDispatcher;
-import discord4j.core.event.domain.lifecycle.ConnectEvent;
-import discord4j.core.event.domain.lifecycle.ReadyEvent;
+import discord4j.core.event.domain.lifecycle.*;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.User;
 import discord4j.core.object.entity.channel.Channel;
@@ -33,8 +32,33 @@ public class Main {
             User self = event.getSelf();
             System.out.println(String.format("Logged in as %s#%s", self.getUsername(), self.getDiscriminator()));
         });
-        builder.getEventDispatcher().on(ConnectEvent.class).subscribe(event -> getAlertChannel()
-                .flatMap(textChannel -> textChannel.createMessage("Connected")).then());
+        builder.getEventDispatcher().on(ConnectEvent.class)
+                .subscribe(event -> getAlertChannel()
+                .flatMap(textChannel -> textChannel.createMessage("Connected"))
+                        .then());
+        builder.getEventDispatcher().on(ReconnectEvent.class)
+                .subscribe(event -> getAlertChannel()
+                .flatMap(textChannel -> textChannel.createMessage("Reconnected"))
+                        .then());
+        builder.getEventDispatcher().on(DisconnectEvent.class)
+                .subscribe(event -> getAlertChannel()
+                .flatMap(textChannel -> textChannel.createMessage("Disconnected"))
+                        .then());
+        builder.getEventDispatcher().on(ReconnectStartEvent.class)
+                .subscribe(event -> getAlertChannel()
+                        .flatMap(textChannel -> textChannel.createMessage("Reconnection started"))
+                        .then());
+        builder.getEventDispatcher().on(ReconnectFailEvent.class)
+                .subscribe(event -> getAlertChannel()
+                        .flatMap(textChannel -> textChannel.createMessage("Reconnection failed"))
+                        .then());
+        builder.getEventDispatcher().on(SessionInvalidatedEvent.class)
+                .subscribe(event -> getAlertChannel()
+                        .flatMap(textChannel -> textChannel.createMessage("Reconnection failed"))
+                        .then());
+
+
+
 
         addCommands();
         builder.getEventDispatcher().on(MessageCreateEvent.class)
@@ -46,6 +70,8 @@ public class Main {
                                 .flatMap(entry -> entry.getValue().execute(event))
                                 .next()))
                 .subscribe();
+
+        builder.onDisconnect().block();
 
 
 
