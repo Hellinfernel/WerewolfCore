@@ -155,7 +155,7 @@ public class Main {
 
                 })
                         .timeout(Duration.ofMinutes(30))
-                        .onErrorResume(TimeoutException.class, ignore -> button = button.disabled())
+                        //.onErrorResume(TimeoutException.class, ignore -> button = button.disabled())
                         .then());});
 
 
