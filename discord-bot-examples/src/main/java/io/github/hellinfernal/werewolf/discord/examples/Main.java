@@ -63,6 +63,7 @@ public class Main {
 
 
 
+
         applicationId = builder.getRestClient().getApplicationId().block();
         globalSlashCommands.put("ping", event -> event.reply("Pong!"));
         try {

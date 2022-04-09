@@ -12,7 +12,7 @@ public abstract class BotExample {
    protected final DiscordClient _discordClient;
 
    public BotExample() {
-      _discordClient = DiscordClient.create("OTI4NjE4Njk5NTYzMzUyMDc0.YdbZjg.cU5V_ICw-_3mna8iyM70nOhi4yg");
+      _discordClient = DiscordClient.create(System.getenv("DISCORD_BOT_API_TOKEN"));
    }
 
    public void example() {
