@@ -5,16 +5,22 @@ import discord4j.core.object.component.Button;
 import discord4j.core.object.entity.Member;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ChannelGame {
     public final Snowflake channelId;
     public final Instant time;
     private final String customButtonId = UUID.randomUUID().toString();
-    private final AtomicLong members = new AtomicLong();
+    private final String custom1ButtonId = UUID.randomUUID().toString();
+
+    private final List<Member> members = new ArrayList<>();
     public Button registerButton = Button.primary(customButtonId.toString(), "Join");
+    public Button leaveButton = Button.danger(custom1ButtonId, "Leave");
 
     public ChannelGame(final Snowflake channelId) {
         this.channelId = channelId;
@@ -35,8 +41,19 @@ public class ChannelGame {
     }
 
     public boolean join(final Member member) {
-        members.incrementAndGet();
-        registerButton = Button.primary(customButtonId.toString(), "Join (" + members.get() + ")");
-        return true;
+        if (!members.contains(member)){
+            members.add(member);
+            registerButton = Button.primary(customButtonId.toString(), "Join (" + members.size() + ")");
+            return true;
+        }
+        else return false;
+    }
+    public boolean leave(final Member member){
+        if (!members.contains(member)){
+            members.remove(member);
+            registerButton = Button.primary(customButtonId.toString(), "Join (" + members.size() + ")");
+            return true;
+        }
+        else return false;
     }
 }
