@@ -49,7 +49,7 @@ public class ChannelGame {
         else return false;
     }
     public boolean leave(final Member member){
-        if (!members.contains(member)){
+        if (members.contains(member)){
             members.remove(member);
             registerButton = Button.primary(customButtonId.toString(), "Join (" + members.size() + ")");
             return true;

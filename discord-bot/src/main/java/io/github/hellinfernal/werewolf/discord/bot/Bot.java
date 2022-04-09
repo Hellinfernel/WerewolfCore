@@ -66,11 +66,14 @@ public class Bot {
                     .filter(c -> c.registerButton
                     .getCustomId()
                     .get()
-                    .equalsIgnoreCase(buttonEvent.getCustomId()))
+                    .equalsIgnoreCase(buttonEvent.getCustomId())
+                            || c.leaveButton.getCustomId().get().equalsIgnoreCase(buttonEvent.getCustomId()))
                     .findFirst()
                     .orElse(null);
 
-            if (buttonEvent.getCustomId().equals(runningGame.registerButton.toString())){
+
+            assert runningGame != null;
+            if (buttonEvent.getCustomId().equals(runningGame.registerButton.getCustomId().get())){
                 if (runningGame.join(event.getMember().get())) {
                     return buttonEvent
                             .deferReply()
@@ -89,7 +92,7 @@ public class Bot {
                             .then(buttonEvent.getMessage().map(message -> message
                                     .edit(MessageEditSpec
                                             .builder()
-                                            .addComponent(ActionRow.of(runningGame.registerButton))
+                                            .addComponent(ActionRow.of(runningGame.registerButton, runningGame.leaveButton))
                                             .build()))
                                     .orElse(Mono.empty()))
                             .then();
@@ -103,12 +106,44 @@ public class Bot {
 
                 }
             }
-            if (buttonEvent.getCustomId().equals(runningGame.leaveButton.toString())){
-                return Mono.empty();
-
+            if (buttonEvent.getCustomId().equals(runningGame.leaveButton.getCustomId().get())){
+                if (runningGame.leave(event.getMember().get())) {
+                    return buttonEvent
+                            .deferReply()
+                            .then(buttonEvent
+                                    .getMessage()
+                                    .map(message -> message
+                                            .edit(MessageEditSpec
+                                                    .builder()
+                                                    .addComponent(ActionRow.of(runningGame.leaveButton.disabled()))
+                                                    .build()))
+                                    .orElse(Mono.empty()))
+                            .then(buttonEvent.createFollowup(event
+                                    .getMember()
+                                    .get()
+                                    .getTag() + " was removed"))
+                            .then(buttonEvent.getMessage().map(message -> message
+                                    .edit(MessageEditSpec
+                                            .builder()
+                                            .addComponent(ActionRow.of(runningGame.registerButton, runningGame.leaveButton))
+                                            .build()))
+                                    .orElse(Mono.empty()))
+                            .then();
+                }
+                else {
+                    return buttonEvent
+                            .deferReply()
+                            .withEphemeral(true)
+                            .then(buttonEvent.createFollowup("You aren't in the game :D")
+                                    .withEphemeral(true))
+                            .then();
+                }
             }
+
+
+
             else {
-                throw new RuntimeException();
+                throw new RuntimeException("ID seems to be not correct.");
             }
 
 
