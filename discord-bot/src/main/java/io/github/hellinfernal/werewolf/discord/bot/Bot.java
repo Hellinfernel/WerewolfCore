@@ -4,6 +4,7 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
 import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
+import discord4j.core.object.entity.Message;
 import discord4j.core.spec.MessageCreateSpec;
 import discord4j.core.spec.MessageEditSpec;
 import org.reactivestreams.Publisher;
@@ -13,6 +14,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 public class Bot {
 
@@ -80,6 +82,19 @@ public class Bot {
 
             if (bootstrap.hasClickedRegister(buttonEvent.getCustomId())) {
                 if (bootstrap.join(event.getMember().get())) {
+                    Supplier<Mono<Message>> gameStarted = Mono::empty;
+                    if (bootstrap.hasReachedMinimumMembers()) {
+                        bootstrap.initiate();
+                        gameStarted = () -> buttonEvent
+                                .getMessage()
+                                .map(message -> message
+                                        .edit(MessageEditSpec
+                                                .builder()
+                                                .addComponent(bootstrap.configureButtons())
+                                                .build()))
+                                .orElse(Mono.empty())
+                                .then(buttonEvent.createFollowup("Game has started, have fun!"));
+                    }
                     return buttonEvent
                             .deferReply()
                             .then(buttonEvent
@@ -94,6 +109,7 @@ public class Bot {
                                     .getMember()
                                     .get()
                                     .getTag() + " was added"))
+                            .then(gameStarted.get())
                             .then();
                 } else {
                     return buttonEvent

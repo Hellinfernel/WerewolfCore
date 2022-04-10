@@ -14,6 +14,8 @@ import java.util.Set;
 import java.util.UUID;
 
 public class GameBootstrap {
+    private final long _minimumMembers = 4;
+    private boolean _initiated = false;
     private final List<Member> _members = new ArrayList<>();
     private final Instant _started = Instant.now();
     private final Button _registerButton = Button.primary(UUID.randomUUID().toString(), "Join");
@@ -27,12 +29,18 @@ public class GameBootstrap {
         this.channelId = channelId;
     }
 
-
     public LayoutComponent configureButtons() {
+        if (_initiated) {
+            final Button disabledRegisterButtonWithMembers = Button.primary(_registerButton.getCustomId().get(), "Join (" + _members.size() + ")").disabled();
+            final Button disabledLeaveButton = Button.danger(_leaveButton.getCustomId().get(), "Leave").disabled();
+            final Button disabledConfigButton = Button.secondary(_configButton.getCustomId().get(), ReactionEmoji.codepoints("U+2699")).disabled();
+            return ActionRow.of(disabledRegisterButtonWithMembers, disabledLeaveButton, disabledConfigButton);
+        }
         if (_members.isEmpty()) {
             return ActionRow.of(_registerButton, _leaveButton, _configButton);
         }
-        Button registerButtonWithMembers = Button.primary(_registerButton.toString(), "Join (" + _members.size() + ")");
+        final Button registerButtonWithMembers = Button.primary(_registerButton.getCustomId().get(), "Join (" + _members.size() + ")");
+
         return ActionRow.of(registerButtonWithMembers, _leaveButton, _configButton);
     }
 
@@ -45,17 +53,18 @@ public class GameBootstrap {
     }
 
     public boolean join(final Member member) {
-        if (_members.contains(member)) {
-            return false;
-        }
-
+        //TODO: disabled member check for testing
+        /**
+         if (_members.contains(member)) {
+         return false;
+         }
+         **/
         _members.add(member);
         return true;
     }
 
-    public LayoutComponent disableRegisterButton() {
-
-        return ActionRow.of(_registerButton, _leaveButton, _configButton);
+    public boolean hasReachedMinimumMembers() {
+        return _members.size() >= _minimumMembers;
     }
 
     public boolean hasClickedLeave(final String customId) {
@@ -68,5 +77,9 @@ public class GameBootstrap {
         }
         _members.remove(member);
         return true;
+    }
+
+    public void initiate() {
+        _initiated = true;
     }
 }
