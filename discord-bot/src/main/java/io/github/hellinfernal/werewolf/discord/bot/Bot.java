@@ -13,6 +13,9 @@ import reactor.core.publisher.Mono;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
@@ -26,6 +29,8 @@ public class Bot {
 
     private DiscordClient _discordClient;
     private Map<Snowflake, GameBootstrap> _gamesToBootstrapByChannel = new HashMap<>();
+    //TODO: scheduler/timer
+    private ScheduledExecutorService _scheduler = Executors.newScheduledThreadPool(1);
 
     private void start() {
         _discordClient = DiscordClient.create(System.getenv("DISCORD_BOT_API_TOKEN"));
@@ -34,6 +39,13 @@ public class Bot {
                         gateway.on(MessageCreateEvent.class, this::startGame) //
                 ))
                 .block();
+        _scheduler.scheduleAtFixedRate(this::checkGames, 30, 30, TimeUnit.SECONDS);
+    }
+
+    private void checkGames() {
+        // TODO: check if game bootstrap is timed out (after 3 minutes?) or can be started
+        //GameBootstrap bootstrap = null;
+        //_discordClient.getChannelById(Snowflake.of(1)).
     }
 
     private Publisher<Void> startGame(final MessageCreateEvent event) {
@@ -42,8 +54,8 @@ public class Bot {
         }
 
         return event.getMessage().getChannel().flatMap(c -> {
-                    if (_gamesToBootstrapByChannel.containsKey(c.getId())) {
-                        return c.createMessage("game already started, wont start another one");
+            if (_gamesToBootstrapByChannel.containsKey(c.getId())) {
+                return c.createMessage("game already started, wont start another one");
                     }
 
                     final GameBootstrap bootstrap = _gamesToBootstrapByChannel.computeIfAbsent(c.getId(), GameBootstrap::new);
