@@ -4,17 +4,14 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.object.component.Button;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.reaction.ReactionEmoji;
-import discord4j.discordjson.json.EmojiData;
 import io.github.hellinfernal.werewolf.core.Game;
-import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 public class ChannelGame {
     public final Snowflake channelId;
@@ -66,6 +63,6 @@ public class ChannelGame {
     }
 
     public Game initiate() {
-        return new Game(members.stream().flatMap(member -> new DiscordWerewolfUser(member)))
+        return new Game(members.stream().map(DiscordWerewolfUser::new).collect(Collectors.toList()));
     }
 }

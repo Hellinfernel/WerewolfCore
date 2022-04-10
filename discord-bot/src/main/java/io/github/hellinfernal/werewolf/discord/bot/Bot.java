@@ -4,7 +4,6 @@ import discord4j.core.DiscordClient;
 import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.component.ActionRow;
-import discord4j.core.object.component.Button;
 import discord4j.core.object.entity.Member;
 import discord4j.core.spec.MessageCreateSpec;
 import discord4j.core.spec.MessageEditSpec;
@@ -55,7 +54,10 @@ public class Bot {
                                         .build())
                                 .then(joinGame(event))
                                 .timeout(Duration.ofMinutes(3))
-                                .onErrorResume(TimeoutException.class, ignore -> channelGame.initiate());
+                                .onErrorResume(TimeoutException.class, ignore -> {
+                                    channelGame.initiate();
+                                    return Mono.empty();
+                                });
                     }
                     return c.createMessage("game already started, wont start another one");
                 }
