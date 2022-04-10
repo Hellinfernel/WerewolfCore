@@ -3,6 +3,10 @@ package io.github.hellinfernal.werewolf.discord.bot;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.component.Button;
 import discord4j.core.object.entity.Member;
+import discord4j.core.object.reaction.ReactionEmoji;
+import discord4j.discordjson.json.EmojiData;
+import io.github.hellinfernal.werewolf.core.Game;
+import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -17,10 +21,14 @@ public class ChannelGame {
     public final Instant time;
     private final String customButtonId = UUID.randomUUID().toString();
     private final String custom1ButtonId = UUID.randomUUID().toString();
+    private final String custom2ButtonId = UUID.randomUUID().toString();
+    //ReactionEmoji gear = ReactionEmoji.of(962406566265511946L, "\U+FE0F",false);
 
+    ReactionEmoji gear = ReactionEmoji.codepoints("U+2699");
     private final List<Member> members = new ArrayList<>();
     public Button registerButton = Button.primary(customButtonId.toString(), "Join");
     public Button leaveButton = Button.danger(custom1ButtonId, "Leave");
+    public Button configButton = Button.secondary(custom2ButtonId, gear);
 
     public ChannelGame(final Snowflake channelId) {
         this.channelId = channelId;
@@ -55,5 +63,9 @@ public class ChannelGame {
             return true;
         }
         else return false;
+    }
+
+    public Game initiate() {
+        return new Game(members.stream().flatMap(member -> new DiscordWerewolfUser(member)))
     }
 }

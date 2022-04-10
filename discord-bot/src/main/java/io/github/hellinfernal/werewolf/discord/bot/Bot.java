@@ -11,10 +11,12 @@ import discord4j.core.spec.MessageEditSpec;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 public class Bot {
 
@@ -49,9 +51,11 @@ public class Bot {
                         _games.computeIfAbsent(channelGame, id -> new ArrayList<>());
                         return c.createMessage(MessageCreateSpec.builder()
                                         .content("Please click Join to join the game, game will start within the next 3 minutes.")
-                                        .addComponent(ActionRow.of(channelGame.registerButton, channelGame.leaveButton))
+                                        .addComponent(ActionRow.of(channelGame.registerButton, channelGame.leaveButton, channelGame.configButton))
                                         .build())
-                                .then(joinGame(event));
+                                .then(joinGame(event))
+                                .timeout(Duration.ofMinutes(3))
+                                .onErrorResume(TimeoutException.class, ignore -> channelGame.initiate());
                     }
                     return c.createMessage("game already started, wont start another one");
                 }
@@ -72,7 +76,6 @@ public class Bot {
                     .orElse(null);
 
 
-            assert runningGame != null;
             if (buttonEvent.getCustomId().equals(runningGame.registerButton.getCustomId().get())){
                 if (runningGame.join(event.getMember().get())) {
                     return buttonEvent
