@@ -1,5 +1,6 @@
 package io.github.hellinfernal.werewolf.core;
 
+import discord4j.common.util.Snowflake;
 import io.github.hellinfernal.werewolf.core.game.*;
 import io.github.hellinfernal.werewolf.core.player.GamePlayer;
 import io.github.hellinfernal.werewolf.core.player.Player;
@@ -33,7 +34,7 @@ public class Game {
             new WerewolfWinningCondition(),
             new VillagerWinningCondition()
     );
-    private final List<GlobalPrinter> _globalPrinters = new ArrayList<>();
+    private final List<GlobalPrinter> _globalPrinters;
     private final GameRound _nightRound = new NightRound(this);
     private final GameRound _dayRound = new DayRound();
 
@@ -48,7 +49,8 @@ public class Game {
     private GameRound _activeRound = _nightRound;
     private GameMove _activeMove = _werewolfMove;
 
-    public Game(final List<User> usersThatWantToPlay,final List<GlobalPrinter> globalprinters) {
+    public Game(final List<User> usersThatWantToPlay,final List<GlobalPrinter> globalPrinters) {
+        _globalPrinters = globalPrinters;
         isDay = false;
         final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size());
         int werewolfsSelected = 0;
@@ -75,7 +77,8 @@ public class Game {
      * @param usersThatWantToBeWerewolfes
      * contains users who want to be Werewolfes
      */
-    public Game(final List<User> usersThatWantToPlay,final List<User> usersThatWantToBeWerewolfes,final List<GlobalPrinter> globalprinters) {
+    public Game(final List<User> usersThatWantToPlay,final List<User> usersThatWantToBeWerewolfes,final List<GlobalPrinter> globalPrinters) {
+        _globalPrinters = globalPrinters;
         isDay = false;
         final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size()+ usersThatWantToBeWerewolfes.size());
         int werewolfsSelected = 0;
@@ -116,7 +119,8 @@ public class Game {
      * @param PlayersWithASpecialRole
      * contains users who want a special role :D
      */
-    public Game(final List<User> usersThatWantToPlay, final List<User> usersThatWantToBeWerewolfes, final Map<SpecialRole,User> PlayersWithASpecialRole,final List<GlobalPrinter> globalprinters) {
+    public Game(final List<User> usersThatWantToPlay, final List<User> usersThatWantToBeWerewolfes, final Map<SpecialRole,User> PlayersWithASpecialRole,final List<GlobalPrinter> globalPrinters) {
+        _globalPrinters = globalPrinters;
         isDay = false;
         final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size()+ usersThatWantToBeWerewolfes.size());
         int werewolfsSelected = 0;
@@ -171,6 +175,13 @@ public class Game {
                 .max(Comparator.comparing(k -> k.killed().get()))
                 .orElse(null);
     }
+
+    //TODO: antwort des discord members entgegen nehmen und irgendwie an den move/voting machine weitergeben
+    /**
+    public void playerResponse(Player from, Player voted, Snowflake messageId ) {
+        _activeMove.playerResponse(from, voted,messageId)
+    }
+     **/
 
     public boolean playStandardRound() {
         
@@ -254,7 +265,7 @@ public class Game {
      * @return a Amor move ;D
      */
 
-    public GameMove get_AmorMove() {
+    public GameMove getAmorMove() {
         return _AmorMove;
     }
 

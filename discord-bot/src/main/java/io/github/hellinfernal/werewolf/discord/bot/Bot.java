@@ -64,7 +64,7 @@ public class Bot {
                 return c.createMessage("game already started, wont start another one");
                     }
 
-                    final GameBootstrap bootstrap = _gamesToBootstrapByChannel.computeIfAbsent(c.getId(), GameBootstrap::new);
+                    final GameBootstrap bootstrap = _gamesToBootstrapByChannel.computeIfAbsent(c.getId(), channelId -> new GameBootstrap(_discordClient, channelId));
                     return c.createMessage(MessageCreateSpec.builder()
                                     .content("Please click Join to join the game, game will start within the next 3 minutes.")
                                     .addComponent(bootstrap.configureButtonsActionRow())

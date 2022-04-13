@@ -1,16 +1,26 @@
 package io.github.hellinfernal.werewolf.discord.bot;
 
+import discord4j.common.util.Snowflake;
+import discord4j.core.DiscordClient;
 import discord4j.core.object.entity.channel.Channel;
 import discord4j.core.object.entity.channel.TextChannel;
 import io.github.hellinfernal.werewolf.core.player.Player;
 import io.github.hellinfernal.werewolf.core.user.GlobalPrinter;
 
 public class DiscordPrinter implements GlobalPrinter {
+    //TODO: ich glaub eher dass wir hier den RestChannel brauchen, musst getestet werden
     TextChannel _channelForAll;
     TextChannel _channelForWerewolfes;
+    private DiscordClient _discordClient;
+    private Snowflake _channelId;
 
     public DiscordPrinter(TextChannel channelForAll){
         _channelForAll = channelForAll;
+    }
+
+    public DiscordPrinter( DiscordClient discordClient, Snowflake channelId ) {
+        _discordClient = discordClient;
+        _channelId = channelId;
     }
 
     @Override

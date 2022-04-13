@@ -2,6 +2,7 @@ package io.github.hellinfernal.werewolf.discord.bot;
 
 
 import discord4j.common.util.Snowflake;
+import discord4j.core.DiscordClient;
 import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
 import discord4j.core.event.domain.interaction.SelectMenuInteractionEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
@@ -12,6 +13,7 @@ import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
 import discord4j.core.object.reaction.ReactionEmoji;
 import discord4j.core.spec.MessageEditSpec;
+import io.github.hellinfernal.werewolf.core.Game;
 import io.github.hellinfernal.werewolf.core.role.SpecialRole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,11 +36,13 @@ public class GameBootstrap {
     private final Button _leaveButton = Button.danger(UUID.randomUUID().toString(), "Leave");
     private final Button _configButton = Button.secondary(UUID.randomUUID().toString(), ReactionEmoji.codepoints("U+2699"));
     private final Set<String> _buttonIds = Set.of(_registerButton.getCustomId().get(), _leaveButton.getCustomId().get(), _configButton.getCustomId().get());
-    private final Snowflake channelId;
+    private              DiscordClient _discordClient;
+    private final Snowflake _channelId;
 
 
-    public GameBootstrap(final Snowflake channelId) {
-        this.channelId = channelId;
+    public GameBootstrap( DiscordClient discordClient, final Snowflake channelId ) {
+        _discordClient = discordClient;
+        _channelId = channelId;
     }
 
     public Mono<MessageEditSpec> configureButtonsMono(Message message){
@@ -130,6 +134,14 @@ public class GameBootstrap {
     public void initiate() {
         _initiated = true;
         System.out.println("Game started: " + this.toString());
+        //TODO: erstelle zwei channels und speicher die IDs (eventuell auch mit überkategorie)
+        final DiscordPrinter discordPrinter = new DiscordPrinter(_discordClient, _channelId);
+        final Game game = new Game(_members.stream().map(DiscordWerewolfUser::new).collect(Collectors.toList()), List.of(discordPrinter));
+
+        //TODO: weise die werfwölfe dem werfolwchannel zu
+        //TODO: weise alle spieler dem villagerchannel zu
+
+        game.playStandardRound();
 
     }
 

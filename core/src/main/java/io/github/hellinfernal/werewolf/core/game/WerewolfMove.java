@@ -14,12 +14,36 @@ public class WerewolfMove implements GameMove {
         _game = game;
     }
 
+    /**
+    public void startMove() {
+        final List<Player> hunters = new ArrayList<>(_game.getAliveWerewolfPlayers());
+        final List<Player> victims = _game.getAliveVillagerPlayers();
+
+        final VotingMachine votingMachine = new VotingMachine(hunters, victims, (player, players) -> player.user().requestVillagerVote(players));
+    }
+
+    public void endMove() {
+        //votingMachine.voteHighest().ifPresent(Player::kill);
+    }
+
+    public boolean active(){
+        return false;
+    }
+    **/
+
     @Override
     public void execute() {
         final List<Player> hunters = new ArrayList<>(_game.getAliveWerewolfPlayers());
         final List<Player> victims = _game.getAliveVillagerPlayers();
 
         final VotingMachine votingMachine = new VotingMachine(hunters, victims, (player, players) -> player.user().requestVillagerVote(players));
+
+        //TODO: warten bis eine antwort da ist
+        /**
+        while(!votingMachine.hasReceivedAnswers()) {
+
+        }
+         **/
 
         votingMachine.voteHighest().ifPresent(Player::kill);
     }

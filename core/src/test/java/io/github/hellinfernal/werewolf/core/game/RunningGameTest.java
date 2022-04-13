@@ -429,7 +429,7 @@ class RunningGameTest {
 
 
         Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeAmors,getGlobalPrinter());
-        game.get_AmorMove().execute();
+        game.getAmorMove().execute();
 
         assertThat(game.getPlayer(villager1).specialRoles()).containsOnly(SpecialRole.Lover);
         assertThat(game.getPlayer(werewolf).specialRoles()).containsOnly(SpecialRole.Lover);
@@ -473,7 +473,7 @@ class RunningGameTest {
 
 
         Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeAmors,getGlobalPrinter());
-        game.get_AmorMove().execute();
+        game.getAmorMove().execute();
 
         assertThat(game.getPlayer(villager1).specialRoles()).containsOnly(SpecialRole.Lover);
         assertThat(game.getPlayer(villager2).specialRoles()).containsOnly(SpecialRole.Lover);
