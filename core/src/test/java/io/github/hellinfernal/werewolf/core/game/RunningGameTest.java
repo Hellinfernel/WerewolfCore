@@ -5,10 +5,13 @@ import io.github.hellinfernal.werewolf.core.TestUser;
 import io.github.hellinfernal.werewolf.core.player.Player;
 import io.github.hellinfernal.werewolf.core.role.GameRole;
 import io.github.hellinfernal.werewolf.core.role.SpecialRole;
+import io.github.hellinfernal.werewolf.core.user.ConsolePrinter;
+import io.github.hellinfernal.werewolf.core.user.GlobalPrinter;
 import io.github.hellinfernal.werewolf.core.user.User;
 import io.github.hellinfernal.werewolf.core.winningcondition.AmorLoversWinningCondition;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
+
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -17,6 +20,11 @@ import static io.github.hellinfernal.werewolf.core.role.GameRole.Werewolf;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RunningGameTest {
+    ArrayList<GlobalPrinter> getGlobalPrinter(){
+        ArrayList<GlobalPrinter> arrayList =new ArrayList<>();
+        arrayList.add(new ConsolePrinter());
+        return arrayList;
+    }
 
 
 
@@ -28,7 +36,7 @@ class RunningGameTest {
         usersThatWantToPlay.add(new TestUser());
         usersThatWantToPlay.add(new TestUser());
 
-        final Game game = new Game(usersThatWantToPlay);
+        final Game game = new Game(usersThatWantToPlay,getGlobalPrinter());
 
         assertThat(game.getPlayers().stream().filter(p -> p.role().equals(Werewolf)).count()).isEqualTo(1);
         assertThat(game.getPlayers().stream().filter(p -> p.role().equals(GameRole.Villager)).count()).isEqualTo(3);
@@ -48,7 +56,7 @@ class RunningGameTest {
         usersThatWantToPlay.add(peter);
         usersThatWantToPlay.add(lisa);
 
-        final Game game = new Game(usersThatWantToPlay);
+        final Game game = new Game(usersThatWantToPlay,getGlobalPrinter());
         final VillagerMove villagerMove = new VillagerMove(game);
 
         assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks, peter, lisa, kevin);
@@ -106,7 +114,7 @@ class RunningGameTest {
         usersThatWantToPlay.add(lisa);
         usersThatWantToBeWerewolfes.add(nostradamus);
 
-        final Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes);
+        final Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,getGlobalPrinter());
         assertThat(game.getAliveWerewolfPlayers()).hasSize(1);
         assertThat(game.getAliveVillagerPlayers()).hasSize(4);
         assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks, peter, lisa, kevin, nostradamus);
@@ -137,7 +145,7 @@ class RunningGameTest {
         usersThatWantToPlay.add(villager3);
         usersThatWantToPlay.add(villager4);
 
-        final Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes);
+        final Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,getGlobalPrinter());
         final List<TestUser> villager4VoteList = new ArrayList<>();
         villager4VoteList.add(villager2);
         villager4VoteList.add(werewolf1);
@@ -180,7 +188,7 @@ class RunningGameTest {
         // zug ausführen -> playround
         // wen voten die test user beim nächsten zug?
 
-        final Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes);
+        final Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,getGlobalPrinter());
 
         // first round is played at night -> so only werewolfs are allowed to vote
         werewolf1.changeVote(voteUser(villager1));
@@ -238,7 +246,7 @@ class RunningGameTest {
         usersThatWantToBeWerewolfes.add(werewolf1);
         usersThatWantToBeWitches.put(SpecialRole.Witch,witch1);
 
-        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeWitches);
+        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeWitches,getGlobalPrinter());
 
         werewolf1.changeVote(voteUser(villager1));
         witch1.set_reanimationVote(voteUser(villager1));
@@ -278,7 +286,7 @@ class RunningGameTest {
         usersThatWantToBeWerewolfes.add(werewolf2);
         usersThatWantToBeWitches.put(SpecialRole.Witch,witch1);
 
-        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeWitches);
+        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeWitches,getGlobalPrinter());
         assertThat(game.getPlayers()).extracting(Player::user).contains(villager1,villager2,villager3,villager4,werewolf1,werewolf2,witch1);
 
         werewolf1.changeVote(voteUser(villager1));
@@ -386,7 +394,7 @@ class RunningGameTest {
         witch1.setKillPotionVote(voteUser(villager2));
 
 
-        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeWitches);
+        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeWitches,getGlobalPrinter());
 
         game.getWitchMove2().execute();
 
@@ -420,7 +428,7 @@ class RunningGameTest {
         amor.setLoverVote(voteUser(listOfLovers));
 
 
-        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeAmors);
+        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeAmors,getGlobalPrinter());
         game.get_AmorMove().execute();
 
         assertThat(game.getPlayer(villager1).specialRoles()).containsOnly(SpecialRole.Lover);
@@ -464,7 +472,7 @@ class RunningGameTest {
         amor.setLoverVote(voteUser(listOfLovers));
 
 
-        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeAmors);
+        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeAmors,getGlobalPrinter());
         game.get_AmorMove().execute();
 
         assertThat(game.getPlayer(villager1).specialRoles()).containsOnly(SpecialRole.Lover);
@@ -494,7 +502,7 @@ class RunningGameTest {
         usersThatWantToBeWerewolfes.add(werewolf);
         usersThatWantToBeHunters.put(SpecialRole.Hunter,hunter);
 
-        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeHunters);
+        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeHunters,getGlobalPrinter());
 
         werewolf.changeVote(voteUser(hunter));
         hunter.setHunterVote(voteUser(werewolf));

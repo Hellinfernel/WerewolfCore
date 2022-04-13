@@ -6,11 +6,11 @@ import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Message;
 import discord4j.core.spec.MessageCreateSpec;
-import discord4j.core.spec.MessageEditSpec;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -43,7 +43,12 @@ public class Bot {
     }
 
     private void checkGames() {
-        // TODO: check if game bootstrap is timed out (after 3 minutes?) or can be started
+
+        _gamesToBootstrapByChannel
+                .entrySet()
+                .stream()
+                .filter(entry -> entry.getValue().get_started().isAfter(Instant.now().minusSeconds(30)))
+        .forEach(entry -> entry.getValue().initiate());
         //GameBootstrap bootstrap = null;
         //_discordClient.getChannelById(Snowflake.of(1)).
     }
@@ -61,9 +66,9 @@ public class Bot {
                     final GameBootstrap bootstrap = _gamesToBootstrapByChannel.computeIfAbsent(c.getId(), GameBootstrap::new);
                     return c.createMessage(MessageCreateSpec.builder()
                                     .content("Please click Join to join the game, game will start within the next 3 minutes.")
-                                    .addComponent(bootstrap.configureButtons())
+                                    .addComponent(bootstrap.configureButtonsActionRow())
                                     .build())
-                            .then(joinGame(event))
+                            .then(generateGameMenu(event))
                             .timeout(Duration.ofMinutes(3))
                             .onErrorResume(TimeoutException.class, ignore -> {
                                 //TODO: later
@@ -74,7 +79,7 @@ public class Bot {
         ).then();
     }
 
-    private Mono<Void> joinGame(final MessageCreateEvent event) {
+    private Mono<Void> generateGameMenu(final MessageCreateEvent event) {
         return event.getClient().on(ButtonInteractionEvent.class, buttonEvent -> {
             final GameBootstrap bootstrap = _gamesToBootstrapByChannel
                     .values()
@@ -91,80 +96,77 @@ public class Bot {
                                 .withEphemeral(true))
                         .then();
             }
-
-            if (bootstrap.hasClickedRegister(buttonEvent.getCustomId())) {
-                if (bootstrap.join(event.getMember().get())) {
-                    Supplier<Mono<Message>> gameStarted = Mono::empty;
-                    if (bootstrap.hasReachedMinimumMembers()) {
-                        bootstrap.initiate();
-                        gameStarted = () -> buttonEvent
-                                .getMessage()
-                                .map(message -> message
-                                        .edit(MessageEditSpec
-                                                .builder()
-                                                .addComponent(bootstrap.configureButtons())
-                                                .build()))
-                                .orElse(Mono.empty())
-                                .then(buttonEvent.createFollowup("Game has started, have fun!"));
-                    }
-                    return buttonEvent
-                            .deferReply()
-                            .then(buttonEvent
-                                    .getMessage()
-                                    .map(message -> message
-                                            .edit(MessageEditSpec
-                                                    .builder()
-                                                    .addComponent(bootstrap.configureButtons())
-                                                    .build()))
-                                    .orElse(Mono.empty()))
-                            .then(buttonEvent.createFollowup(event
-                                    .getMember()
-                                    .get()
-                                    .getTag() + " was added"))
-                            .then(gameStarted.get())
-                            .then();
-                } else {
-                    return buttonEvent
-                            .deferReply()
-                            .withEphemeral(true)
-                            .then(buttonEvent.createFollowup("You are already in the game :D")
-                                    .withEphemeral(true))
-                            .then();
-
-                }
+            if (bootstrap.hasClickedRegister(buttonEvent.getCustomId()))
+                return getJoinReaction(event, buttonEvent, bootstrap);
+            if (bootstrap.hasClickedLeave(buttonEvent.getCustomId()))
+                return getLeaveReaction(event, buttonEvent, bootstrap);
+            if (bootstrap.hasClickedConfig(buttonEvent.getCustomId())){
+                return getConfigReaction(event,buttonEvent,bootstrap);
             }
-
-            if (bootstrap.hasClickedLeave(buttonEvent.getCustomId())) {
-                if (bootstrap.leave(event.getMember().get())) {
-                    return buttonEvent
-                            .deferReply()
-                            .then(buttonEvent
-                                    .getMessage()
-                                    .map(message -> message
-                                            .edit(MessageEditSpec
-                                                    .builder()
-                                                    .addComponent(bootstrap.configureButtons())
-                                                    .build()))
-                                    .orElse(Mono.empty()))
-                            .then(buttonEvent.createFollowup(event
-                                    .getMember()
-                                    .get()
-                                    .getTag() + " was removed"))
-                            .then();
-                } else {
-                    return buttonEvent
-                            .deferReply()
-                            .withEphemeral(true)
-                            .then(buttonEvent.createFollowup("You aren't in the game :D")
-                                    .withEphemeral(true))
-                            .then();
-                }
-            } else {
-                throw new RuntimeException("ID seems to be not correct.");
-            }
+            return Mono.empty();
 
 
         }).then();
+    }
+
+    private Mono<Void> getConfigReaction(MessageCreateEvent event, ButtonInteractionEvent buttonEvent, GameBootstrap bootstrap) {
+        return bootstrap.configMenu(buttonEvent, event);
+    }
+
+    @org.jetbrains.annotations.NotNull
+    private Mono<Void> getLeaveReaction(MessageCreateEvent event, ButtonInteractionEvent buttonEvent, GameBootstrap bootstrap) {
+        if (bootstrap.leave(event.getMember().get())) {
+            return buttonEvent
+                    .deferReply()
+                    .then(Mono.just(bootstrap.configureButtonsEditSpec(buttonEvent.getMessage().get())))
+                    .then(buttonEvent.createFollowup(event
+                            .getMember()
+                            .get()
+                            .getTag() + " was removed"))
+                    .then();
+        } else {
+            return buttonEvent
+                    .deferReply()
+                    .withEphemeral(true)
+                    .then(buttonEvent.createFollowup("You aren't in the game :D")
+                            .withEphemeral(true))
+                    .then();
+        }
+    }
+
+    @org.jetbrains.annotations.NotNull
+    private Mono<Void> getJoinReaction(MessageCreateEvent event, ButtonInteractionEvent buttonEvent, GameBootstrap bootstrap) {
+        if (bootstrap.join(event.getMember().get())) {
+            Supplier<Mono<Message>> gameStarted = Mono::empty;
+            if (bootstrap.hasReachedMinimumMembers()) {
+                bootstrap.initiate();
+                gameStarted = () -> buttonEvent
+                        .getMessage()
+                        .map(bootstrap::configureButtonEdit)
+                        .get()
+                        .then(buttonEvent.createFollowup("Game has started, have fun!"));
+            }
+            return buttonEvent
+                    .deferReply()
+                    .then(buttonEvent
+                            .getMessage()
+                            .map(bootstrap::configureButtonEdit)
+                    .get())
+                    .then(buttonEvent.createFollowup(event
+                            .getMember()
+                            .get()
+                            .getTag() + " was added"))
+                    .then(gameStarted.get())
+                    .then();
+        } else {
+            return buttonEvent
+                    .deferReply()
+                    .withEphemeral(true)
+                    .then(buttonEvent.createFollowup("You are already in the game :D")
+                            .withEphemeral(true))
+                    .then();
+
+        }
     }
 
 }

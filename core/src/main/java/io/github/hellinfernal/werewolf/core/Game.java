@@ -5,6 +5,7 @@ import io.github.hellinfernal.werewolf.core.player.GamePlayer;
 import io.github.hellinfernal.werewolf.core.player.Player;
 import io.github.hellinfernal.werewolf.core.role.GameRole;
 import io.github.hellinfernal.werewolf.core.role.SpecialRole;
+import io.github.hellinfernal.werewolf.core.user.GlobalPrinter;
 import io.github.hellinfernal.werewolf.core.user.User;
 import io.github.hellinfernal.werewolf.core.winningcondition.VillagerWinningCondition;
 import io.github.hellinfernal.werewolf.core.winningcondition.WerewolfWinningCondition;
@@ -31,6 +32,7 @@ public class Game {
             new WerewolfWinningCondition(),
             new VillagerWinningCondition()
     );
+    private final List<GlobalPrinter> _globalPrinters = new ArrayList<>();
     private final GameRound _nightRound = new NightRound(this);
     private final GameRound _dayRound = new DayRound();
 
@@ -45,7 +47,7 @@ public class Game {
     private GameRound _activeRound = _nightRound;
     private GameMove _activeMove = _werewolfMove;
 
-    public Game(final List<User> usersThatWantToPlay) {
+    public Game(final List<User> usersThatWantToPlay,final List<GlobalPrinter> globalprinters) {
         isDay = false;
         final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size());
         int werewolfsSelected = 0;
@@ -72,7 +74,7 @@ public class Game {
      * @param usersThatWantToBeWerewolfes
      * contains users who want to be Werewolfes
      */
-    public Game(final List<User> usersThatWantToPlay,final List<User> usersThatWantToBeWerewolfes) {
+    public Game(final List<User> usersThatWantToPlay,final List<User> usersThatWantToBeWerewolfes,final List<GlobalPrinter> globalprinters) {
         isDay = false;
         final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size()+ usersThatWantToBeWerewolfes.size());
         int werewolfsSelected = 0;
@@ -113,7 +115,7 @@ public class Game {
      * @param PlayersWithASpecialRole
      * contains users who want a special role :D
      */
-    public Game(final List<User> usersThatWantToPlay, final List<User> usersThatWantToBeWerewolfes, final Map<SpecialRole,User> PlayersWithASpecialRole) {
+    public Game(final List<User> usersThatWantToPlay, final List<User> usersThatWantToBeWerewolfes, final Map<SpecialRole,User> PlayersWithASpecialRole,final List<GlobalPrinter> globalprinters) {
         isDay = false;
         final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size()+ usersThatWantToBeWerewolfes.size());
         int werewolfsSelected = 0;
@@ -195,7 +197,7 @@ public class Game {
         fulfilledWinningCondition = _winConditions.stream().filter(c -> c.isSatisfied(this)).findAny().orElse(null );
 
         if (fulfilledWinningCondition != null) {
-            getPlayers().forEach(player -> player.user().informAboutGameEnd());
+            _globalPrinters.forEach(GlobalPrinter::informAboutGameEnd);
             // alle player notifizieren
             // game schließen
             return true;
@@ -208,10 +210,14 @@ public class Game {
 
     private void changeDayTime() {
         if (isDay == true){
+
             isDay = false;
+            _globalPrinters.forEach(GlobalPrinter::informAboutChangeToNightTime);
         }
         else {
             isDay = true;
+            _globalPrinters.forEach(GlobalPrinter::informAboutChangeToDayTime);
+            _globalPrinters.forEach(GlobalPrinter::informAboutThingsHappendInNight);
         }
     }
 
@@ -287,10 +293,14 @@ public class Game {
      * @return a list where all Players with the called role are
      */
     public List<Player> getSpecialRolePlayers(SpecialRole specialRole){
-        List list = getPlayers().stream()
+        List<Player> list = getPlayers().stream()
                 .filter(player -> player.specialRoles().contains(specialRole))
                 .collect(Collectors.toList());
         return list;
+
+    }
+    public void acceptGlobalPrinterMethod(MethodReference<GlobalPrinter> reference){
+        _globalPrinters.forEach(GlobalPrinter::reference);
 
     }
 }

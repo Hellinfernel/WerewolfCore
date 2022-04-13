@@ -88,16 +88,7 @@ public class TestUser implements User {
                 .orElse(null);
     }
 
-    @Override
-    public void informAboutResultOfVillagerVote(Player killedPlayer) {
-        System.out.println(killedPlayer + " was killed.");
 
-    }
-
-    @Override
-    public void informAboutGameEnd() {
-        System.out.println("game ends :D");
-    }
 
     @Override
     public boolean requestDecisionAboutSavingLastKilledPlayer(Player lastKilledGuy) {

@@ -49,15 +49,6 @@ public class DiscordWerewolfUser implements User {
         return null;
     }
 
-    @Override
-    public void informAboutResultOfVillagerVote(Player killedPlayer) {
-
-    }
-
-    @Override
-    public void informAboutGameEnd() {
-
-    }
 
     @Override
     public boolean requestDecisionAboutSavingLastKilledPlayer(Player lastKilledGuy) {

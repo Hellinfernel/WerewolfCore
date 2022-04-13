@@ -25,10 +25,6 @@ public interface User {
 
     //for the vote in the night, is usually only used if you are a werewolf
 
-    void informAboutResultOfVillagerVote(Player killedPlayer);
-
-    void informAboutGameEnd();
-
     boolean requestDecisionAboutSavingLastKilledPlayer(Player lastKilledGuy);
 
     void informAboutFallingInLove(Player lover);
