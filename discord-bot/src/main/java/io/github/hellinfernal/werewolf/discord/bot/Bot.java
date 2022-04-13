@@ -49,6 +49,7 @@ public class Bot {
                 .stream()
                 .filter(entry -> entry.getValue().get_started().isAfter(Instant.now().minusSeconds(30)))
         .forEach(entry -> entry.getValue().initiate());
+        //TODO: user über spielstart informieren
         //GameBootstrap bootstrap = null;
         //_discordClient.getChannelById(Snowflake.of(1)).
     }

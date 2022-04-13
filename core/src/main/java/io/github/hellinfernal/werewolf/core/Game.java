@@ -13,6 +13,7 @@ import io.github.hellinfernal.werewolf.core.winningcondition.WinningCondition;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -197,7 +198,7 @@ public class Game {
         fulfilledWinningCondition = _winConditions.stream().filter(c -> c.isSatisfied(this)).findAny().orElse(null );
 
         if (fulfilledWinningCondition != null) {
-            _globalPrinters.forEach(GlobalPrinter::informAboutGameEnd);
+            acceptGlobalPrinterMethod(GlobalPrinter::informAboutGameEnd);
             // alle player notifizieren
             // game schließen
             return true;
@@ -212,12 +213,12 @@ public class Game {
         if (isDay == true){
 
             isDay = false;
-            _globalPrinters.forEach(GlobalPrinter::informAboutChangeToNightTime);
+            acceptGlobalPrinterMethod(GlobalPrinter::informAboutChangeToNightTime);
         }
         else {
             isDay = true;
-            _globalPrinters.forEach(GlobalPrinter::informAboutChangeToDayTime);
-            _globalPrinters.forEach(GlobalPrinter::informAboutThingsHappendInNight);
+            acceptGlobalPrinterMethod(GlobalPrinter::informAboutChangeToDayTime);
+            acceptGlobalPrinterMethod(GlobalPrinter::informAboutThingsHappendInNight);
         }
     }
 
@@ -299,8 +300,8 @@ public class Game {
         return list;
 
     }
-    public void acceptGlobalPrinterMethod(MethodReference<GlobalPrinter> reference){
-        _globalPrinters.forEach(GlobalPrinter::reference);
 
+    public void acceptGlobalPrinterMethod( Consumer<GlobalPrinter> action){
+        _globalPrinters.forEach(action::accept);
     }
 }
