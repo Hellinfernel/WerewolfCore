@@ -175,6 +175,14 @@ public class Game {
                 .max(Comparator.comparing(k -> k.killed().get()))
                 .orElse(null);
     }
+    public void gameStart(){
+        while (playStandardRound() == false){
+
+        }
+        System.out.println(":D");
+
+        //TODO: this code is cursed.
+    }
 
     //TODO: antwort des discord members entgegen nehmen und irgendwie an den move/voting machine weitergeben
     /**

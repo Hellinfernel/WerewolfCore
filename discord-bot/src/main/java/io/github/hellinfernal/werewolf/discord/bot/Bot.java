@@ -39,16 +39,22 @@ public class Bot {
                         gateway.on(MessageCreateEvent.class, this::startGame) //
                 ))
                 .block();
-        _scheduler.scheduleAtFixedRate(this::checkGames, 30, 30, TimeUnit.SECONDS);
+        /** _scheduler.scheduleAtFixedRate(this::checkGames, 30, 30, TimeUnit.SECONDS);
+         * removed for test reasons.
+         */
+       //TODO: Remove Comment :D
     }
 
     private void checkGames() {
+        //TODO: Remove COmment :D
+        /**
 
         _gamesToBootstrapByChannel
                 .entrySet()
                 .stream()
                 .filter(entry -> entry.getValue().get_started().isAfter(Instant.now().minusSeconds(30)))
-        .forEach(entry -> entry.getValue().initiate());
+        .forEach(entry -> entry.getValue().initiate(menuEvent)); **/
+
         //TODO: user über spielstart informieren
         //GameBootstrap bootstrap = null;
         //_discordClient.getChannelById(Snowflake.of(1)).
@@ -60,22 +66,26 @@ public class Bot {
         }
 
         return event.getMessage().getChannel().flatMap(c -> {
-            if (_gamesToBootstrapByChannel.containsKey(c.getId())) {
-                return c.createMessage("game already started, wont start another one");
+                    if (_gamesToBootstrapByChannel.containsKey(c.getId())) {
+                        return c.createMessage("game already started, wont start another one");
+                    } else {
+                        final GameBootstrap bootstrap = new GameBootstrap(_discordClient, c.getId(), event.getGuild().block());
+                        _gamesToBootstrapByChannel.put(c.getId(), bootstrap);
+                        return c.createMessage(MessageCreateSpec.builder()
+                                .content("Please click Join to join the game, game will start within the next 3 minutes.")
+                                .addComponent(bootstrap.configureButtonsActionRow())
+                                .build())
+                                .then(generateGameMenu(event))
+                                .timeout(Duration.ofMinutes(3))
+                                .onErrorResume(TimeoutException.class, ignore -> {
+                                    //TODO: later
+                                    //channelGame.initiate();
+                                    return Mono.empty();
+                                });
+
+
                     }
 
-                    final GameBootstrap bootstrap = _gamesToBootstrapByChannel.computeIfAbsent(c.getId(), channelId -> new GameBootstrap(_discordClient, channelId));
-                    return c.createMessage(MessageCreateSpec.builder()
-                                    .content("Please click Join to join the game, game will start within the next 3 minutes.")
-                                    .addComponent(bootstrap.configureButtonsActionRow())
-                                    .build())
-                            .then(generateGameMenu(event))
-                            .timeout(Duration.ofMinutes(3))
-                            .onErrorResume(TimeoutException.class, ignore -> {
-                                //TODO: later
-                                //channelGame.initiate();
-                                return Mono.empty();
-                            });
                 }
         ).then();
     }
@@ -139,14 +149,14 @@ public class Bot {
     private Mono<Void> getJoinReaction(MessageCreateEvent event, ButtonInteractionEvent buttonEvent, GameBootstrap bootstrap) {
         if (bootstrap.join(event.getMember().get())) {
             Supplier<Mono<Message>> gameStarted = Mono::empty;
-            if (bootstrap.hasReachedMinimumMembers()) {
-                bootstrap.initiate();
+          /**  if (bootstrap.hasReachedMinimumMembers()) {
+                bootstrap.initiate(menuEvent);
                 gameStarted = () -> buttonEvent
                         .getMessage()
                         .map(bootstrap::configureButtonEdit)
                         .get()
                         .then(buttonEvent.createFollowup("Game has started, have fun!"));
-            }
+            } **/ //TODO: remove comment :D
             return buttonEvent
                     .deferReply()
                     .then(buttonEvent
