@@ -13,17 +13,38 @@ public interface User {
     void tell(final String whatTodo);
 
 
+    /**
+     * requests a vote for a VillagerMove
+     * @param potentialTargets the potential targets.
+     * @return a player (from the Collection if possible)
+     */
     Player requestVillagerVote(Collection<Player> potentialTargets);
 
+
+    /**
+     * requests a vote for a WerewolfMove
+     * @param potentialTargets the potential targets.
+     * @return a player (from the Collection if possible)
+     */
     Player requestWerewolfVote(Collection<Player> potentialTargets);
 
-    Player requestKillPotionUse(Collection<Player> keySet);
 
-    Player requestLover(List<Player> players);
+    /**
+     * requests a vote for a WitchMove1
+     * @param potentialTargets the potential targets.
+     * @return a player (from the Collection if possible)
+     */
+    Player requestKillPotionUse(Collection<Player> potentialTargets);
 
+
+    /**
+     * requests 2 players from Amor, which are going to fall in love. Usually only called at the very beginning of a game.
+     * @param players the potential Targets.
+     * @return A players in love object.
+     */
     PlayersInLove requestLovers(List<Player> players);
 
-    //for the vote in the night, is usually only used if you are a werewolf
+
 
     boolean requestDecisionAboutSavingLastKilledPlayer(Player lastKilledGuy);
 

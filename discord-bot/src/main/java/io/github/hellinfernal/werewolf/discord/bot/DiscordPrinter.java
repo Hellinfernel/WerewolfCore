@@ -13,6 +13,8 @@ import io.github.hellinfernal.werewolf.core.player.PlayersInLove;
 import io.github.hellinfernal.werewolf.core.user.GlobalPrinter;
 import io.github.hellinfernal.werewolf.core.user.User;
 import org.jetbrains.annotations.Async;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -28,12 +30,23 @@ public class DiscordPrinter implements GlobalPrinter {
     //TODO: ich glaub eher dass wir hier den RestChannel brauchen, musst getestet werden
     TextChannel _channelForAll;
     TextChannel _channelForWerewolfes;
+    private static final Logger LOGGER = LoggerFactory.getLogger(DiscordPrinter.class);
     private DiscordClient _discordClient;
-    private Snowflake _channelId;
 
     public DiscordPrinter(TextChannel channelForAll, TextChannel channelForWerewolfes){
         _channelForAll = channelForAll;
-        _channelForWerewolfes = channelForAll;
+        _channelForWerewolfes = channelForWerewolfes;
+        LOGGER.debug("Printer created. \n"
+                + toString());
+    }
+
+    @Override
+    public String toString() {
+        return "DiscordPrinter{" +
+                " \n _channelForAll=" + _channelForAll.toString() +
+                ", \n  _channelForWerewolfes=" + _channelForWerewolfes.toString() +
+                ", \n  _discordClient=" + _discordClient +
+                '}';
     }
 
     public DiscordPrinter.DiscordWerewolfUser getDiscordWerewolfUser(Member member){
@@ -48,12 +61,12 @@ public class DiscordPrinter implements GlobalPrinter {
 
     public DiscordPrinter( DiscordClient discordClient, Snowflake channelId ) {
         _discordClient = discordClient;
-        _channelId = channelId;
     }
 
     @Override
     public void informAboutStartOfTheVillagerVote() {
-
+        _channelForAll.createMessage("*Tack* *Tack* *Tack* \n" +
+                "Ok, ok, please calm down. we will make a little talk round where everyone can make their arguments and then everyone has one vote.");
     }
 
     @Override
@@ -64,6 +77,9 @@ public class DiscordPrinter implements GlobalPrinter {
 
     @Override
     public void informAboutThingsHappendInNight() {
+        LOGGER.debug("informAboutThingsHappendInNight() needs to be inplemented.");
+        //TODO: implement.
+        _channelForAll.createMessage("not inplemented yet.");
 
     }
 
@@ -109,6 +125,7 @@ public class DiscordPrinter implements GlobalPrinter {
             _member = member;
             _channelForAll = channelForAll;
             _channelForWerewolfes = channelForWerewolfes;
+            LOGGER.debug("DiscordWerewolfUser created: " + member.getTag());
 
 
         }
@@ -170,10 +187,6 @@ public class DiscordPrinter implements GlobalPrinter {
             return null;
         }
 
-        @Override
-        public Player requestLover(List<Player> players) {
-            return null;
-        }
 
         @Override
         public PlayersInLove requestLovers(List<Player> players) {
@@ -191,4 +204,5 @@ public class DiscordPrinter implements GlobalPrinter {
 
         }
     }
+
 }

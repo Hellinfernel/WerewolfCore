@@ -165,6 +165,11 @@ public class Game {
 
     }
 
+    /**
+     * Returns the players who are dead.
+     * @return a list of killed Players
+     */
+
     public List<Player> getKilledPlayers() {
         return _playersPlayingTheGame.stream().filter(Player::isDead).collect(Collectors.toList());
     }

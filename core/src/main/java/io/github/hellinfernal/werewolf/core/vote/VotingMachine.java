@@ -1,6 +1,7 @@
 package io.github.hellinfernal.werewolf.core.vote;
 
 import io.github.hellinfernal.werewolf.core.player.Player;
+import reactor.core.publisher.Flux;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
@@ -21,7 +22,7 @@ public class VotingMachine {
     }
 
     public Optional<Player> voteHighest() {
-        _voters.forEach(voters -> voteProcess(voters, _playerVotes));
+        _voters.forEach(voter -> voteProcess(voter, _playerVotes));
         final AtomicReference<Player> highestVotedPlayer = new AtomicReference<>(null);
         AtomicLong votesHighest = new AtomicLong();
 

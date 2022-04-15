@@ -108,13 +108,6 @@ public class TestUser implements User {
         System.out.println("yo, you are in love with " + lover.toString() + " ,ok?");
     }
 
-    @Override
-    public Player requestLover(List<Player> players) {
-        return players.stream()
-                .filter(_loverVote)
-                .findFirst()
-                .orElse(null);
-    }
 
     @Override
     public PlayersInLove requestLovers(final List<Player> players) {

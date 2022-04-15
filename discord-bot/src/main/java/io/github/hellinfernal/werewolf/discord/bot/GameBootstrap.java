@@ -28,6 +28,7 @@ import io.github.hellinfernal.werewolf.core.role.SpecialRole;
 import io.github.hellinfernal.werewolf.core.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
@@ -195,6 +196,7 @@ public class GameBootstrap {
                 .filter(player -> player.role() == GameRole.Werewolf)
                 .map(player -> (DiscordPrinter.DiscordWerewolfUser) player.user())
                 .forEach(user -> werewolfChannel.addMemberOverwrite(user._member.getId(), PermissionOverwrite.forMember(user._member.getId(),channelPermisions,PermissionSet.none())));
+        game.gameStart();
         return menuEvent.deferReply()
                 .then();
 

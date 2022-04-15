@@ -2,6 +2,7 @@ package io.github.hellinfernal.werewolf.core.game;
 
 import io.github.hellinfernal.werewolf.core.Game;
 import io.github.hellinfernal.werewolf.core.player.Player;
+import io.github.hellinfernal.werewolf.core.user.GlobalPrinter;
 import io.github.hellinfernal.werewolf.core.vote.VotingMachine;
 
 import java.util.ArrayList;
@@ -33,10 +34,11 @@ public class WerewolfMove implements GameMove {
 
     @Override
     public void execute() {
+        _game.acceptGlobalPrinterMethod(GlobalPrinter::informAboutStartOfTheHunt);
         final List<Player> hunters = new ArrayList<>(_game.getAliveWerewolfPlayers());
         final List<Player> victims = _game.getAliveVillagerPlayers();
 
-        final VotingMachine votingMachine = new VotingMachine(hunters, victims, (player, players) -> player.user().requestVillagerVote(players));
+        final VotingMachine votingMachine = new VotingMachine(hunters, victims, (player, players) -> player.user().requestWerewolfVote(players));
 
         //TODO: warten bis eine antwort da ist
         /**
@@ -46,5 +48,6 @@ public class WerewolfMove implements GameMove {
          **/
 
         votingMachine.voteHighest().ifPresent(Player::kill);
+        _game.acceptGlobalPrinterMethod(GlobalPrinter::informAboutEndOfTheHunt);
     }
 }
