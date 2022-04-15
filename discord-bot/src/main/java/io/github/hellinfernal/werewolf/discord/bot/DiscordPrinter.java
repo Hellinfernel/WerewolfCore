@@ -132,7 +132,7 @@ public class DiscordPrinter implements GlobalPrinter {
 
         @Override
         public String name() {
-            return null;
+            return _member.getTag();
         }
 
         @Override
@@ -142,7 +142,33 @@ public class DiscordPrinter implements GlobalPrinter {
 
         @Override
         public Player requestVillagerVote(Collection<Player> potentialTargets) {
-            return null;
+            List<SelectMenu.Option> victims = potentialTargets.stream()
+                    .map(player -> SelectMenu.Option.of(player.user().name(),player.user().name()))
+                    .collect(Collectors.toList());
+            SelectMenu selectMenu = SelectMenu.of(UUID.randomUUID().toString(),victims);
+            PrivateChannel privateChannel = _member.getPrivateChannel().block();
+            return privateChannel.createMessage()
+                    .withContent("Ok, my friend. who should die?")
+                    .withComponents(ActionRow.of(selectMenu))
+                    .then(requestVillagerVoteListener(privateChannel, selectMenu, potentialTargets).next())
+                    .timeout(Duration.ofMinutes(5))
+                    .onErrorReturn(null)
+                    .block();
+
+        }
+
+        private Flux<Player> requestVillagerVoteListener(PrivateChannel privateChannel, SelectMenu selectMenu, Collection<Player> potentialTargets) {
+            return privateChannel.getClient().on(SelectMenuInteractionEvent.class, event ->{
+                if (event.getCustomId().equals(selectMenu.getCustomId())){
+                    return Mono.just(potentialTargets.stream()
+                    .filter(player -> player.user()
+                            .name().equals(event.getValues().stream()
+                                    .findFirst()
+                                    .get()))
+                    .findFirst().get());
+                }
+                return Mono.empty();
+                    }).filter(player -> player != null);
         }
 
         @Override
@@ -167,7 +193,7 @@ public class DiscordPrinter implements GlobalPrinter {
         }
         public Flux<Player> requestWerewolfVoteListener(PrivateChannel privateChannel, SelectMenu selectMenu, Collection<Player> potentialTargets) {
             return privateChannel.getClient().on(SelectMenuInteractionEvent.class, event -> {
-                if (event.getCustomId() == selectMenu.getCustomId()) {
+                if (event.getCustomId().equals(selectMenu.getCustomId())) {
                     return Mono.just(potentialTargets.stream()
                             .filter(player -> player.user()
                                     .name()
