@@ -16,19 +16,16 @@ import discord4j.core.object.entity.Message;
 import discord4j.core.object.entity.channel.Category;
 import discord4j.core.object.entity.channel.TextChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
-import discord4j.core.spec.CategoryCreateMono;
 import discord4j.core.spec.MessageEditSpec;
 import io.github.hellinfernal.werewolf.core.Game;
 import discord4j.core.spec.TextChannelCreateSpec;
 import discord4j.rest.util.Permission;
 import discord4j.rest.util.PermissionSet;
-import io.github.hellinfernal.werewolf.core.Game;
 import io.github.hellinfernal.werewolf.core.role.GameRole;
 import io.github.hellinfernal.werewolf.core.role.SpecialRole;
 import io.github.hellinfernal.werewolf.core.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
@@ -51,6 +48,7 @@ public class GameBootstrap {
     private              DiscordClient _discordClient;
     private final Snowflake _channelId;
     private final Guild _guild;
+    private int _kiUsers = 0;
 
 
     public GameBootstrap( DiscordClient discordClient, final Snowflake channelId, final Guild guild) {
@@ -102,12 +100,22 @@ public class GameBootstrap {
     private Button getRegisterButton() {
         Button registerButton = _registerButton;
 
-            registerButton = Button.primary(registerButton.getCustomId().get(), "Join (" + _members.size() + ")");
+            registerButton = Button.primary(registerButton.getCustomId().get(), "Join (" + totalPlayers() + ")");
         if (_initiated){
              registerButton = registerButton.disabled();
         }
 
         return registerButton;
+    }
+
+    /**
+     *
+     * @return the total ammount of players in this game :D
+     */
+
+    private String totalPlayers() {
+        int totalPlayers = _members.size() + _kiUsers;
+        return String.valueOf(totalPlayers);
     }
 
     public boolean hasButton(final String customId) {
@@ -184,6 +192,10 @@ public class GameBootstrap {
 
         DiscordPrinter discordPrinter = new DiscordPrinter(villagerChannel,werewolfChannel);
         List<User> userList = discordPrinter.getDiscordWerewolfUserList(_members);
+        for (int i = _kiUsers; i != 0; i--){
+            userList.add(new KiUser());
+
+        }
         Game game = new Game(userList,List.of(discordPrinter));
         PermissionSet setForWerewolfes = PermissionSet.of(Permission.VIEW_CHANNEL,Permission.SEND_MESSAGES);
         game.getPlayers().stream()
@@ -221,7 +233,8 @@ public class GameBootstrap {
         SelectMenu selectMenu = SelectMenu.of(UUID.randomUUID().toString(),
                 SelectMenu.Option.of("Number of Players", "numberOfPlayers"),
                 SelectMenu.Option.of("Special Roles", "specialRoles"),
-                SelectMenu.Option.of("Initiate", "initiate"));
+                SelectMenu.Option.of("Initiate", "initiate"),
+                SelectMenu.Option.of("Add KiPlayers :D", "addKiPlayers"));
         return buttonEvent.deferReply()
                 .withEphemeral(true)
                 .then(buttonEvent.createFollowup()
@@ -254,6 +267,12 @@ public class GameBootstrap {
             if (menuEvent.getValues().contains("initiate")){
                 return initiate(menuEvent);
             }
+            if (menuEvent.getValues().contains("addKiPlayers")){
+                LOGGER.debug("numberOfKiPlayersMenu created");
+                return menuEvent.deferReply()
+                        .withEphemeral(true)
+                        .then(numberOfKiPlayersMenu(menuEvent));
+            }
 
             }
             return Mono.empty();
@@ -262,6 +281,46 @@ public class GameBootstrap {
 
 
 
+
+
+    }
+
+    /**
+     * Generates a Menu for the ammount of KiPlayers :D
+     * @param menuEvent
+     * @return
+     */
+
+    private Mono<Void> numberOfKiPlayersMenu(SelectMenuInteractionEvent menuEvent) {
+        List<SelectMenu.Option> playerNumberOptions = new ArrayList<>();
+        for (int i = 1; i < 20; i++) {
+            playerNumberOptions.add(SelectMenu.Option.of(String.valueOf(i),String.valueOf(i)));
+        }
+        SelectMenu selectMenu = SelectMenu.of(UUID.randomUUID().toString(), playerNumberOptions);
+        return menuEvent.createFollowup()
+                .withEphemeral(true)
+                .withComponents(ActionRow.of(selectMenu))
+                .then(numberOfKiPlayersMenuListener(menuEvent,selectMenu));
+
+    }
+
+    private Mono<Void> numberOfKiPlayersMenuListener(SelectMenuInteractionEvent oldMenuEvent,SelectMenu selectMenu) {
+        return oldMenuEvent.getClient().on(SelectMenuInteractionEvent.class, menuEvent ->{
+                    if (menuEvent.getCustomId().equals(selectMenu.getCustomId())) {
+                        String choice = menuEvent.getValues().get(0);
+                        _kiUsers = Integer.parseInt(choice);
+                        StringBuilder stringBuilder = new StringBuilder();
+                        stringBuilder.append("Number of Ki-Players set to: ");
+                        stringBuilder.append(choice);
+                        return menuEvent.deferReply()
+                                .then(menuEvent.createFollowup()
+                                        .withContent(stringBuilder.toString()));
+
+                    }
+                    else return Mono.empty();
+        }
+
+                ).then();
 
 
     }

@@ -16,6 +16,7 @@ import org.jetbrains.annotations.Async;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -151,9 +152,8 @@ public class DiscordPrinter implements GlobalPrinter {
                     .withContent("Ok, my friend. who should die?")
                     .withComponents(ActionRow.of(selectMenu))
                     .then(requestVillagerVoteListener(privateChannel, selectMenu, potentialTargets).next())
-                    .timeout(Duration.ofMinutes(5))
-                    .onErrorReturn(null)
-                    .block();
+                    .checkpoint("WerewolfVote Checkpoint",true)
+                    .block(Duration.ofMinutes(5));
 
         }
 
@@ -182,16 +182,16 @@ public class DiscordPrinter implements GlobalPrinter {
                 return privateChannel.createMessage()
                         .withContent("Ok, my fellow Werewolf... who are we going to hunt?")
                         .withComponents(ActionRow.of(selectMenu))
-                        .then(requestWerewolfVoteListener(privateChannel, selectMenu, potentialTargets).next())
-                        .timeout(Duration.ofMinutes(5))
-                        .onErrorReturn(null)
-                        .block();
+                        .then(requestWerewolfVoteListener(privateChannel, selectMenu, potentialTargets))
+                        .checkpoint("WerewolfVote Checkpoint",true)
+                        .block(Duration.ofMinutes(5));
+
 
 
 
 
         }
-        public Flux<Player> requestWerewolfVoteListener(PrivateChannel privateChannel, SelectMenu selectMenu, Collection<Player> potentialTargets) {
+        public Mono<Player> requestWerewolfVoteListener(PrivateChannel privateChannel, SelectMenu selectMenu, Collection<Player> potentialTargets) {
             return privateChannel.getClient().on(SelectMenuInteractionEvent.class, event -> {
                 if (event.getCustomId().equals(selectMenu.getCustomId())) {
                     return Mono.just(potentialTargets.stream()
@@ -205,7 +205,8 @@ public class DiscordPrinter implements GlobalPrinter {
                 }
                 return Mono.empty();
             })
-                    .filter(player -> player != null);
+                    .filter(potentialTargets::contains)
+                    .next();
         }
 
         @Override
