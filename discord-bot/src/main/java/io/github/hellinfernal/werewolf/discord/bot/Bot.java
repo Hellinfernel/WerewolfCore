@@ -68,7 +68,7 @@ public class Bot {
                     if (_gamesToBootstrapByChannel.containsKey(c.getId())) {
                         return c.createMessage("game already started, wont start another one");
                     } else {
-                        final GameBootstrap bootstrap = new GameBootstrap(_discordClient, c.getId(), event.getGuild().block());
+                        final GameBootstrap bootstrap = new GameBootstrap(_discordClient, c.getId(), event.getGuildId().get());
                         _gamesToBootstrapByChannel.put(c.getId(), bootstrap);
                         return c.createMessage(MessageCreateSpec.builder()
                                 .content("Please click Join to join the game, game will start within the next 3 minutes.")

@@ -5,21 +5,19 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
 import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
 import discord4j.core.event.domain.interaction.SelectMenuInteractionEvent;
-import discord4j.core.object.PermissionOverwrite;
 import discord4j.core.object.component.ActionRow;
 import discord4j.core.object.component.Button;
 import discord4j.core.object.component.SelectMenu;
-import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
-import discord4j.core.object.entity.channel.Category;
-import discord4j.core.object.entity.channel.TextChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
 import discord4j.core.spec.MessageEditSpec;
-import discord4j.core.spec.TextChannelCreateSpec;
-import discord4j.rest.util.Permission;
-import discord4j.rest.util.PermissionSet;
+import discord4j.discordjson.json.ChannelCreateRequest;
+import discord4j.discordjson.json.PermissionsEditRequest;
+import discord4j.rest.entity.RestChannel;
+import discord4j.rest.entity.RestGuild;
 import io.github.hellinfernal.werewolf.core.Game;
+import io.github.hellinfernal.werewolf.core.player.Player;
 import io.github.hellinfernal.werewolf.core.role.GameRole;
 import io.github.hellinfernal.werewolf.core.role.SpecialRole;
 import io.github.hellinfernal.werewolf.core.user.User;
@@ -46,14 +44,14 @@ public class GameBootstrap {
     private final Set<String> _buttonIds = Set.of(_registerButton.getCustomId().get(), _leaveButton.getCustomId().get(), _configButton.getCustomId().get());
     private              DiscordClient _discordClient;
     private final Snowflake _channelId;
-    private final Guild _guild;
+    private final RestGuild _guild;
     private int _kiUsers = 0;
 
 
-    public GameBootstrap( DiscordClient discordClient, final Snowflake channelId, final Guild guild) {
+    public GameBootstrap(DiscordClient discordClient, final Snowflake channelId, final Snowflake guild) {
         _discordClient = discordClient;
         _channelId = channelId;
-        _guild = guild;
+        _guild = _discordClient.getGuildById(guild);
     }
 
 
@@ -153,38 +151,40 @@ public class GameBootstrap {
         return true;
     }
 
-    public Mono<Void> initiate(SelectMenuInteractionEvent menuEvent) {
+    public boolean initiate(Snowflake guildId) {
         _initiated = true;
-        System.out.println("Game started: " + this.toString());
-        Category category = _guild.createCategory("Werewolf").withReason("Creating new Game").block();
+        if (!guildId.equals(_guild.getId())) {
+            throw new IllegalStateException("guild mismatch");
+        }
+        final RestChannel category = _discordClient.getChannelById(
+                Snowflake.of(_guild.createChannel(ChannelCreateRequest.builder()
+                                .type(4)
+                                .name("Werewolf Game X")
+                                .build(), null)
+                        .block().id().asLong())
+        );
 
+        final RestChannel werewolfChannel = _discordClient.getChannelById(
+                Snowflake.of(
+                        _guild.createChannel(ChannelCreateRequest.builder()
+                                        .name("Werewolf Chat")
+                                        .type(0)
+                                        .parentId(category.getId().asString())
+                                        .build(), null)
+                                .block().id().asLong()
+                )
+        );
 
-        List<PermissionOverwrite> generalOverwrite = _guild.getRoles()
-                .filter(role -> !role.getPermissions().contains(Permission.ADMINISTRATOR))
-                .map(role -> PermissionOverwrite.forRole(role.getId(),PermissionSet.none(),PermissionSet.all()))
-                .collectList()
-                .block();
-        PermissionSet channelPermisions = PermissionSet.of(Permission.ADD_REACTIONS,Permission.SEND_MESSAGES,Permission.VIEW_CHANNEL);
-
-
-        TextChannel villagerChannel = _guild.createTextChannel(TextChannelCreateSpec.builder()
-                .name("VillagerChat")
-                .parentId(category.getId())
-                .addAllPermissionOverwrites(generalOverwrite)
-                .build())
-                .block();
-        TextChannel werewolfChannel = _guild.createTextChannel(TextChannelCreateSpec.builder()
-                .name("WerewolfChat")
-                .parentId(category.getId())
-                .addAllPermissionOverwrites(generalOverwrite)
-                .build())
-                .block();
-
-
-        _guild.getRoles()
-                .filter(role -> !role.getPermissions().contains(Permission.ADMINISTRATOR))
-                .flatMap(role -> werewolfChannel.addRoleOverwrite(role.getId(),PermissionOverwrite.forRole(role.getId(),PermissionSet.none(),PermissionSet.all())))
-                .subscribe();
+        final RestChannel villagerChannel = _discordClient.getChannelById(
+                Snowflake.of(
+                        _guild.createChannel(ChannelCreateRequest.builder()
+                                        .name("Villager Chat")
+                                        .type(0)
+                                        .parentId(category.getId().asString())
+                                        .build(), null)
+                                .block().id().asLong()
+                )
+        );
 
 
         //TODO: finish it
@@ -195,27 +195,32 @@ public class GameBootstrap {
             userList.add(new KiUser());
         }
         Game game = new Game(userList, List.of(discordPrinter));
-        PermissionSet setForWerewolfes = PermissionSet.of(Permission.VIEW_CHANNEL, Permission.SEND_MESSAGES);
-        List<Mono<Void>> monos = new ArrayList<>();
-        game.getPlayers().stream()
-                .filter(player -> player.user().getClass().isAssignableFrom(DiscordPrinter.DiscordWerewolfUser.class))
-                .filter(player -> player.role() == GameRole.Werewolf)
-                .map(player -> (DiscordPrinter.DiscordWerewolfUser) player.user())
-                .peek(user -> category.addMemberOverwrite(user._member.getId(), PermissionOverwrite.forMember(user._member.getId(), channelPermisions, PermissionSet.none())).block())
-                .forEach(user -> werewolfChannel.addMemberOverwrite(user._member.getId(), PermissionOverwrite.forMember(user._member.getId(), channelPermisions, PermissionSet.none())).block());
-        game.getAliveWerewolfPlayers().stream()
-                .filter(player -> player.user().getClass().isAssignableFrom(DiscordPrinter.DiscordWerewolfUser.class))
-                .filter(player -> player.role() == GameRole.Werewolf)
-                .map(player -> (DiscordPrinter.DiscordWerewolfUser) player.user())
-                .forEach(user -> werewolfChannel.addMemberOverwrite(user._member.getId(), PermissionOverwrite.forMember(user._member.getId(), channelPermisions, PermissionSet.none())).block());
+
+        for (final Player player : game.getPlayers()) {
+            if (!(player.user() instanceof DiscordPrinter.DiscordWerewolfUser)) {
+                continue;
+            }
+
+            final Snowflake memberId = ((DiscordPrinter.DiscordWerewolfUser) player.user())._member.getId();
+            if (player.role() == GameRole.Werewolf) {
+                werewolfChannel.editChannelPermissions(memberId, PermissionsEditRequest.builder()
+                                .allow(1 << 10)
+                                .deny(0)
+                                .build(), null)
+                        .block();
+            }
+            villagerChannel.editChannelPermissions(memberId, PermissionsEditRequest.builder()
+                            .allow(1 << 10)
+                            .deny(0)
+                            .build(), null)
+                    .block();
+
+        }
         game.gameStart();
-        return menuEvent.deferReply()
-                .then();
-
-
+        return true;
     }
 
-    public Instant get_started() {
+    public Instant getStarted() {
         return _started;
     }
 
@@ -265,8 +270,9 @@ public class GameBootstrap {
                         .withEphemeral(true)
                         .then(rolesOptionsMenu(menuEvent));
             }
-            if (menuEvent.getValues().contains("initiate")){
-                return initiate(menuEvent);
+            if (menuEvent.getValues().contains("initiate")) {
+                initiate(event.getInteraction().getGuildId().get());
+                return menuEvent.deferReply().then(event.createFollowup().withContent("initiated")).then();
             }
             if (menuEvent.getValues().contains("addKiPlayers")){
                 LOGGER.debug("numberOfKiPlayersMenu created");
