@@ -203,18 +203,21 @@ public class GameBootstrap {
                 werewolfChannel.editChannelPermissions(memberId, PermissionsEditRequest.builder()
                                 .allow(1 << 10)
                                 .type(1)
+                        .deny(0)
                                 .build(), null)
                         .block();
             }
             villagerChannel.editChannelPermissions(memberId, PermissionsEditRequest.builder()
                             .type(1)
                             .allow(1 << 10)
+                    .deny(0)
                             .build(), null)
                     .block();
 
             categoryChannel.editChannelPermissions(memberId, PermissionsEditRequest.builder()
                             .type(1)
                             .allow(1 << 10)
+                    .deny(0)
                             .build(), null)
                     .block();
 
