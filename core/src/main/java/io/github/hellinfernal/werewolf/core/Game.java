@@ -11,6 +11,9 @@ import io.github.hellinfernal.werewolf.core.user.User;
 import io.github.hellinfernal.werewolf.core.winningcondition.VillagerWinningCondition;
 import io.github.hellinfernal.werewolf.core.winningcondition.WerewolfWinningCondition;
 import io.github.hellinfernal.werewolf.core.winningcondition.WinningCondition;
+import io.netty.handler.ssl.ApplicationProtocolConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -48,10 +51,14 @@ public class Game {
 
     private GameRound _activeRound = _nightRound;
     private GameMove _activeMove = _werewolfMove;
+    private final Logger LOGGER = LoggerFactory.getLogger(Game.class);
+    private final Protocol protocol;
+
 
     public Game(final List<User> usersThatWantToPlay,final List<GlobalPrinter> globalPrinters) {
         _globalPrinters = globalPrinters;
         isDay = false;
+        protocol = new Protocol("Game");
         final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size());
         int werewolfsSelected = 0;
         Collections.shuffle(usersThatWantToPlay);
@@ -67,6 +74,8 @@ public class Game {
             final Player player = new GamePlayer(this,gameRole, user);
             _playersPlayingTheGame.add(player);
         }
+        LOGGER.debug("Game Created: \n " + toString());
+
 
     }
 
@@ -80,6 +89,7 @@ public class Game {
     public Game(final List<User> usersThatWantToPlay,final List<User> usersThatWantToBeWerewolfes,final List<GlobalPrinter> globalPrinters) {
         _globalPrinters = globalPrinters;
         isDay = false;
+        protocol = new Protocol("Game");
         final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size()+ usersThatWantToBeWerewolfes.size());
         int werewolfsSelected = 0;
         if (usersThatWantToBeWerewolfes.size() > amountOfWerewolfs){
@@ -107,6 +117,7 @@ public class Game {
             final Player player = new GamePlayer(this,gameRole, user);
             _playersPlayingTheGame.add(player);
         }
+        LOGGER.debug("Game Created: \n " + toString());
 
     }
 
@@ -122,6 +133,7 @@ public class Game {
     public Game(final List<User> usersThatWantToPlay, final List<User> usersThatWantToBeWerewolfes, final Map<SpecialRole,User> PlayersWithASpecialRole,final List<GlobalPrinter> globalPrinters) {
         _globalPrinters = globalPrinters;
         isDay = false;
+        protocol = new Protocol("Game");
         final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size()+ usersThatWantToBeWerewolfes.size());
         int werewolfsSelected = 0;
 
@@ -162,6 +174,7 @@ public class Game {
             final Player player = new GamePlayer(this,gameRole, user);
             _playersPlayingTheGame.add(player);
         }
+        LOGGER.debug("Game Created: \n " + toString());
 
     }
 
@@ -325,7 +338,26 @@ public class Game {
 
     }
 
-    public void acceptGlobalPrinterMethod( Consumer<GlobalPrinter> action){
+    @Override
+    public String toString() {
+        return "Game{" +
+                "isDay=" + isDay +
+                ", _playersPlayingTheGame=" + _playersPlayingTheGame +
+                ", _winConditions=" + _winConditions +
+                ", _globalPrinters=" + _globalPrinters +
+                ", _nightRound=" + _nightRound +
+                ", _dayRound=" + _dayRound +
+                ", _werewolfMove=" + _werewolfMove +
+                ", _villagerMove=" + _villagerMove +
+                ", _witchMove1=" + _witchMove1 +
+                ", _witchMove2=" + _witchMove2 +
+                ", _AmorMove=" + _AmorMove +
+                ", _activeRound=" + _activeRound +
+                ", _activeMove=" + _activeMove +
+                '}';
+    }
+
+    public void acceptGlobalPrinterMethod(Consumer<GlobalPrinter> action){
         _globalPrinters.forEach(action::accept);
     }
 }

@@ -4,10 +4,14 @@ import io.github.hellinfernal.werewolf.core.Game;
 import io.github.hellinfernal.werewolf.core.player.Player;
 import io.github.hellinfernal.werewolf.core.player.PlayersInLove;
 import io.github.hellinfernal.werewolf.core.role.SpecialRole;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 import java.util.Optional;
 
 public class AmorMove implements GameMove{
+    private final Logger LOGGER = LoggerFactory.getLogger(AmorMove.class);
     private Game _game;
     private PlayersInLove _playersInLove;
 
@@ -31,6 +35,7 @@ public class AmorMove implements GameMove{
             playersInLove.informAboutFallingInLove();
             playersInLove.deaths();
             _playersInLove = playersInLove;
+            LOGGER.debug("The following Players fall in Love :" + playersInLove.toString());
         }
     }
 
