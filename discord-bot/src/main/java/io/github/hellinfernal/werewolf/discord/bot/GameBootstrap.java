@@ -158,6 +158,7 @@ public class GameBootstrap {
         System.out.println("Game started: " + this.toString());
         Category category = _guild.createCategory("Werewolf").withReason("Creating new Game").block();
 
+
         List<PermissionOverwrite> generalOverwrite = _guild.getRoles()
                 .filter(role -> !role.getPermissions().contains(Permission.ADMINISTRATOR))
                 .map(role -> PermissionOverwrite.forRole(role.getId(),PermissionSet.none(),PermissionSet.all()))
@@ -193,14 +194,14 @@ public class GameBootstrap {
         List<User> userList = discordPrinter.getDiscordWerewolfUserList(_members);
         for (int i = _kiUsers; i != 0; i--){
             userList.add(new KiUser());
-
         }
         Game game = new Game(userList,List.of(discordPrinter));
         PermissionSet setForWerewolfes = PermissionSet.of(Permission.VIEW_CHANNEL,Permission.SEND_MESSAGES);
         game.getPlayers().stream()
                 .filter(player -> player.user().getClass().isAssignableFrom(DiscordPrinter.DiscordWerewolfUser.class))
                 .filter(player -> player.role() == GameRole.Werewolf)
-                .map(player -> (DiscordPrinter.DiscordWerewolfUser)player.user())
+                .map(player -> (DiscordPrinter.DiscordWerewolfUser) player.user())
+                .peek(user -> category.addMemberOverwrite(user._member.getId(), PermissionOverwrite.forMember(user._member.getId(), channelPermisions, PermissionSet.none())))
                 .forEach(user -> werewolfChannel.addMemberOverwrite(user._member.getId(), PermissionOverwrite.forMember(user._member.getId(),channelPermisions,PermissionSet.none())));
         game.getAliveWerewolfPlayers().stream()
                 .filter(player -> player.user().getClass().isAssignableFrom(DiscordPrinter.DiscordWerewolfUser.class))
