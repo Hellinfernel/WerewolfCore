@@ -202,18 +202,18 @@ public class GameBootstrap {
             if (player.role() == GameRole.Werewolf) {
                 werewolfChannel.editChannelPermissions(memberId, PermissionsEditRequest.builder()
                                 .allow(1 << 10)
-                                .type(0)
+                                .type(1)
                                 .build(), null)
                         .block();
             }
             villagerChannel.editChannelPermissions(memberId, PermissionsEditRequest.builder()
-                            .type(0)
+                            .type(1)
                             .allow(1 << 10)
                             .build(), null)
                     .block();
 
             categoryChannel.editChannelPermissions(memberId, PermissionsEditRequest.builder()
-                            .type(4)
+                            .type(1)
                             .allow(1 << 10)
                             .build(), null)
                     .block();
