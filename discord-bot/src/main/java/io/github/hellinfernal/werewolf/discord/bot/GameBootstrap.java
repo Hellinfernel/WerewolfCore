@@ -124,12 +124,9 @@ public class GameBootstrap {
     }
 
     public boolean join(final Member member) {
-        //TODO: disabled member check for testing
-        /**
          if (_members.contains(member)) {
          return false;
          }
-         **/
         _members.add(member);
         System.out.println(_members.size());
         return true;
@@ -205,7 +202,6 @@ public class GameBootstrap {
             if (player.role() == GameRole.Werewolf) {
                 werewolfChannel.editChannelPermissions(memberId, PermissionsEditRequest.builder()
                                 .allow(1 << 10)
-                                .deny(0)
                                 .type(0)
                                 .build(), null)
                         .block();
@@ -213,14 +209,12 @@ public class GameBootstrap {
             villagerChannel.editChannelPermissions(memberId, PermissionsEditRequest.builder()
                             .type(0)
                             .allow(1 << 10)
-                            .deny(0)
                             .build(), null)
                     .block();
 
             categoryChannel.editChannelPermissions(memberId, PermissionsEditRequest.builder()
                             .type(4)
                             .allow(1 << 10)
-                            .deny(0)
                             .build(), null)
                     .block();
 
