@@ -156,7 +156,7 @@ public class GameBootstrap {
         if (!guildId.equals(_guild.getId())) {
             throw new IllegalStateException("guild mismatch");
         }
-        final RestChannel category = _discordClient.getChannelById(
+        final RestChannel categoryChannel = _discordClient.getChannelById(
                 Snowflake.of(_guild.createChannel(ChannelCreateRequest.builder()
                                 .type(4)
                                 .name("Werewolf Game X")
@@ -169,7 +169,7 @@ public class GameBootstrap {
                         _guild.createChannel(ChannelCreateRequest.builder()
                                         .name("Werewolf Chat")
                                         .type(0)
-                                        .parentId(category.getId().asString())
+                                        .parentId(categoryChannel.getId().asString())
                                         .build(), null)
                                 .block().id().asLong()
                 )
@@ -180,7 +180,7 @@ public class GameBootstrap {
                         _guild.createChannel(ChannelCreateRequest.builder()
                                         .name("Villager Chat")
                                         .type(0)
-                                        .parentId(category.getId().asString())
+                                        .parentId(categoryChannel.getId().asString())
                                         .build(), null)
                                 .block().id().asLong()
                 )
@@ -206,10 +206,19 @@ public class GameBootstrap {
                 werewolfChannel.editChannelPermissions(memberId, PermissionsEditRequest.builder()
                                 .allow(1 << 10)
                                 .deny(0)
+                                .type(0)
                                 .build(), null)
                         .block();
             }
             villagerChannel.editChannelPermissions(memberId, PermissionsEditRequest.builder()
+                            .type(0)
+                            .allow(1 << 10)
+                            .deny(0)
+                            .build(), null)
+                    .block();
+
+            categoryChannel.editChannelPermissions(memberId, PermissionsEditRequest.builder()
+                            .type(4)
                             .allow(1 << 10)
                             .deny(0)
                             .build(), null)
