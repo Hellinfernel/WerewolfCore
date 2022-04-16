@@ -4,18 +4,17 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
 import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
+import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
 import discord4j.core.spec.MessageCreateSpec;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
@@ -108,11 +107,11 @@ public class Bot {
                         .then();
             }
             if (bootstrap.hasClickedRegister(buttonEvent.getCustomId()))
-                return getJoinReaction(event, buttonEvent, bootstrap);
+                return getJoinReaction(buttonEvent, bootstrap);
             if (bootstrap.hasClickedLeave(buttonEvent.getCustomId()))
-                return getLeaveReaction(event, buttonEvent, bootstrap);
-            if (bootstrap.hasClickedConfig(buttonEvent.getCustomId())){
-                return getConfigReaction(event,buttonEvent,bootstrap);
+                return getLeaveReaction(buttonEvent, bootstrap);
+            if (bootstrap.hasClickedConfig(buttonEvent.getCustomId())) {
+                return getConfigReaction(buttonEvent, bootstrap);
             }
             return Mono.empty();
 
@@ -120,19 +119,18 @@ public class Bot {
         }).then();
     }
 
-    private Mono<Void> getConfigReaction(MessageCreateEvent event, ButtonInteractionEvent buttonEvent, GameBootstrap bootstrap) {
-        return bootstrap.configMenu(buttonEvent, event);
+    private Mono<Void> getConfigReaction(ButtonInteractionEvent buttonEvent, GameBootstrap bootstrap) {
+        return bootstrap.configMenu(buttonEvent);
     }
 
     @org.jetbrains.annotations.NotNull
-    private Mono<Void> getLeaveReaction(MessageCreateEvent event, ButtonInteractionEvent buttonEvent, GameBootstrap bootstrap) {
-        if (bootstrap.leave(event.getMember().get())) {
+    private Mono<Void> getLeaveReaction(ButtonInteractionEvent buttonEvent, GameBootstrap bootstrap) {
+        final Member member = buttonEvent.getInteraction().getMember().get();
+        if (bootstrap.leave(member)) {
             return buttonEvent
                     .deferReply()
                     .then(Mono.just(bootstrap.configureButtonsEditSpec(buttonEvent.getMessage().get())))
-                    .then(buttonEvent.createFollowup(event
-                            .getMember()
-                            .get()
+                    .then(buttonEvent.createFollowup(member
                             .getTag() + " was removed"))
                     .then();
         } else {
@@ -146,26 +144,25 @@ public class Bot {
     }
 
     @org.jetbrains.annotations.NotNull
-    private Mono<Void> getJoinReaction(MessageCreateEvent event, ButtonInteractionEvent buttonEvent, GameBootstrap bootstrap) {
-        if (bootstrap.join(event.getMember().get())) {
+    private Mono<Void> getJoinReaction(ButtonInteractionEvent buttonEvent, GameBootstrap bootstrap) {
+        final Member member = buttonEvent.getInteraction().getMember().get();
+        if (bootstrap.join(member)) {
             Supplier<Mono<Message>> gameStarted = Mono::empty;
-          /**  if (bootstrap.hasReachedMinimumMembers()) {
-                bootstrap.initiate(menuEvent);
-                gameStarted = () -> buttonEvent
-                        .getMessage()
-                        .map(bootstrap::configureButtonEdit)
-                        .get()
-                        .then(buttonEvent.createFollowup("Game has started, have fun!"));
-            } **/ //TODO: remove comment :D
+            /**  if (bootstrap.hasReachedMinimumMembers()) {
+             bootstrap.initiate(menuEvent);
+             gameStarted = () -> buttonEvent
+             .getMessage()
+             .map(bootstrap::configureButtonEdit)
+             .get()
+             .then(buttonEvent.createFollowup("Game has started, have fun!"));
+             } **/ //TODO: remove comment :D
             return buttonEvent
                     .deferReply()
                     .then(buttonEvent
                             .getMessage()
                             .map(bootstrap::configureButtonEdit)
-                    .get())
-                    .then(buttonEvent.createFollowup(event
-                            .getMember()
-                            .get()
+                            .get())
+                    .then(buttonEvent.createFollowup(member
                             .getTag() + " was added"))
                     .then(gameStarted.get())
                     .then();

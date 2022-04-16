@@ -5,7 +5,6 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
 import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
 import discord4j.core.event.domain.interaction.SelectMenuInteractionEvent;
-import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.PermissionOverwrite;
 import discord4j.core.object.component.ActionRow;
 import discord4j.core.object.component.Button;
@@ -17,10 +16,10 @@ import discord4j.core.object.entity.channel.Category;
 import discord4j.core.object.entity.channel.TextChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
 import discord4j.core.spec.MessageEditSpec;
-import io.github.hellinfernal.werewolf.core.Game;
 import discord4j.core.spec.TextChannelCreateSpec;
 import discord4j.rest.util.Permission;
 import discord4j.rest.util.PermissionSet;
+import io.github.hellinfernal.werewolf.core.Game;
 import io.github.hellinfernal.werewolf.core.role.GameRole;
 import io.github.hellinfernal.werewolf.core.role.SpecialRole;
 import io.github.hellinfernal.werewolf.core.user.User;
@@ -225,11 +224,11 @@ public class GameBootstrap {
 
     /**
      * generates a config menu, which generates options to modify the game :D
+     *
      * @param buttonEvent
-     * @param event
      * @return
      */
-    public Mono<Void> configMenu(ButtonInteractionEvent buttonEvent, MessageCreateEvent event) {
+    public Mono<Void> configMenu(ButtonInteractionEvent buttonEvent) {
         SelectMenu selectMenu = SelectMenu.of(UUID.randomUUID().toString(),
                 SelectMenu.Option.of("Number of Players", "numberOfPlayers"),
                 SelectMenu.Option.of("Special Roles", "specialRoles"),
@@ -240,27 +239,28 @@ public class GameBootstrap {
                 .then(buttonEvent.createFollowup()
                         .withComponents(ActionRow.of(selectMenu))
                         .withEphemeral(true)
-                        .then(configMenuListener(event,selectMenu.getCustomId())));
+                        .then(configMenuListener(selectMenu.getCustomId(), buttonEvent)));
     }
 
     /**
      * A Listender which listens to the configMenu.
-     * @param event the event to get the EventDispatcher on.
+     *
      * @param customID The CustomID of the Menu to get the event on.
+     * @param event
      * @return the eventDispatcher, .then(numberOfPlayersMenu()) or .then(rolesOptionsMenu())
      */
 
-    public Mono<Void> configMenuListener(MessageCreateEvent event, String customID) {
-        return event.getClient().on(SelectMenuInteractionEvent.class, menuEvent ->{
-        if (menuEvent.getCustomId().equals(customID)){
-            if (menuEvent.getValues().contains("numberOfPlayers")){
-                LOGGER.debug("numberOfPlayersMenu created.");
-                return menuEvent.deferReply()
-                        .withEphemeral(true)
-                        .then(numberOfPlayersMenu(menuEvent));
-            }
-            if (menuEvent.getValues().contains("specialRoles")){
-                return menuEvent.deferReply()
+    public Mono<Void> configMenuListener(String customID, final ButtonInteractionEvent event) {
+        return event.getClient().on(SelectMenuInteractionEvent.class, menuEvent -> {
+            if (menuEvent.getCustomId().equals(customID)) {
+                if (menuEvent.getValues().contains("numberOfPlayers")) {
+                    LOGGER.debug("numberOfPlayersMenu created.");
+                    return menuEvent.deferReply()
+                            .withEphemeral(true)
+                            .then(numberOfPlayersMenu(menuEvent));
+                }
+                if (menuEvent.getValues().contains("specialRoles")) {
+                    return menuEvent.deferReply()
                         .withEphemeral(true)
                         .then(rolesOptionsMenu(menuEvent));
             }
