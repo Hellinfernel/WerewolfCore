@@ -187,30 +187,30 @@ public class GameBootstrap {
                 .subscribe();
 
 
-
         //TODO: finish it
 
-        DiscordPrinter discordPrinter = new DiscordPrinter(villagerChannel,werewolfChannel);
+        DiscordPrinter discordPrinter = new DiscordPrinter(villagerChannel, werewolfChannel);
         List<User> userList = discordPrinter.getDiscordWerewolfUserList(_members);
-        for (int i = _kiUsers; i != 0; i--){
+        for (int i = _kiUsers; i != 0; i--) {
             userList.add(new KiUser());
         }
-        Game game = new Game(userList,List.of(discordPrinter));
-        PermissionSet setForWerewolfes = PermissionSet.of(Permission.VIEW_CHANNEL,Permission.SEND_MESSAGES);
+        Game game = new Game(userList, List.of(discordPrinter));
+        PermissionSet setForWerewolfes = PermissionSet.of(Permission.VIEW_CHANNEL, Permission.SEND_MESSAGES);
+        List<Mono<Void>> monos = new ArrayList<>();
         game.getPlayers().stream()
                 .filter(player -> player.user().getClass().isAssignableFrom(DiscordPrinter.DiscordWerewolfUser.class))
                 .filter(player -> player.role() == GameRole.Werewolf)
                 .map(player -> (DiscordPrinter.DiscordWerewolfUser) player.user())
-                .peek(user -> category.addMemberOverwrite(user._member.getId(), PermissionOverwrite.forMember(user._member.getId(), channelPermisions, PermissionSet.none())))
-                .forEach(user -> werewolfChannel.addMemberOverwrite(user._member.getId(), PermissionOverwrite.forMember(user._member.getId(),channelPermisions,PermissionSet.none())));
+                .peek(user -> monos.add(category.addMemberOverwrite(user._member.getId(), PermissionOverwrite.forMember(user._member.getId(), channelPermisions, PermissionSet.none()))))
+                .forEach(user -> monos.add(werewolfChannel.addMemberOverwrite(user._member.getId(), PermissionOverwrite.forMember(user._member.getId(), channelPermisions, PermissionSet.none()))));
         game.getAliveWerewolfPlayers().stream()
                 .filter(player -> player.user().getClass().isAssignableFrom(DiscordPrinter.DiscordWerewolfUser.class))
                 .filter(player -> player.role() == GameRole.Werewolf)
                 .map(player -> (DiscordPrinter.DiscordWerewolfUser) player.user())
-                .forEach(user -> werewolfChannel.addMemberOverwrite(user._member.getId(), PermissionOverwrite.forMember(user._member.getId(),channelPermisions,PermissionSet.none())));
+                .forEach(user -> monos.add(werewolfChannel.addMemberOverwrite(user._member.getId(), PermissionOverwrite.forMember(user._member.getId(), channelPermisions, PermissionSet.none()))));
         game.gameStart();
         return menuEvent.deferReply()
-                .then();
+                .then(Mono.when(monos));
 
 
     }
