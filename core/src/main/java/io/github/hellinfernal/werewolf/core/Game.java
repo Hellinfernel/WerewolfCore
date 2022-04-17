@@ -51,7 +51,7 @@ public class Game {
 
     private GameRound _activeRound = _nightRound;
     private GameMove _activeMove = _werewolfMove;
-    private final Logger LOGGER = LoggerFactory.getLogger(Game.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Game.class);
     private final Protocol protocol;
 
 

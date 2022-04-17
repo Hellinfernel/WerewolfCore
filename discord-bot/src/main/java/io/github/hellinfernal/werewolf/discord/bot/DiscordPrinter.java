@@ -2,11 +2,14 @@ package io.github.hellinfernal.werewolf.discord.bot;
 
 import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
+import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
 import discord4j.core.event.domain.interaction.SelectMenuInteractionEvent;
 import discord4j.core.object.component.ActionRow;
+import discord4j.core.object.component.Button;
 import discord4j.core.object.component.SelectMenu;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.channel.PrivateChannel;
+import discord4j.discordjson.json.MessageCreateRequest;
 import discord4j.rest.entity.RestChannel;
 import io.github.hellinfernal.werewolf.core.player.Player;
 import io.github.hellinfernal.werewolf.core.player.PlayersInLove;
@@ -14,13 +17,16 @@ import io.github.hellinfernal.werewolf.core.user.GlobalPrinter;
 import io.github.hellinfernal.werewolf.core.user.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class DiscordPrinter implements GlobalPrinter {
@@ -28,12 +34,15 @@ public class DiscordPrinter implements GlobalPrinter {
         Member _member;
         RestChannel _channelForAll;
         RestChannel _channelForWerewolfes;
+        DiscordClient _discordClient;
 
 
-        public DiscordWerewolfUser(Member member, RestChannel channelForAll, RestChannel channelForWerewolfes) {
+
+        public DiscordWerewolfUser(Member member, RestChannel channelForAll, RestChannel channelForWerewolfes, DiscordClient discordClient) {
             _member = member;
             _channelForAll = channelForAll;
             _channelForWerewolfes = channelForWerewolfes;
+            _discordClient = discordClient;
             LOGGER.debug("DiscordWerewolfUser created: " + member.getTag());
 
 
@@ -51,32 +60,41 @@ public class DiscordPrinter implements GlobalPrinter {
 
         @Override
         public Player requestVillagerVote(Collection<Player> potentialTargets) {
-            List<SelectMenu.Option> victims = potentialTargets.stream()
-                    .map(player -> SelectMenu.Option.of(player.user().name(),player.user().name()))
-                    .collect(Collectors.toList());
-            SelectMenu selectMenu = SelectMenu.of(UUID.randomUUID().toString(),victims);
-            PrivateChannel privateChannel = _member.getPrivateChannel().block();
-            return privateChannel.createMessage()
-                    .withContent("Ok, my friend. who should die?")
-                    .withComponents(ActionRow.of(selectMenu))
-                    .then(requestVillagerVoteListener(privateChannel, selectMenu, potentialTargets).next())
-                    .checkpoint("WerewolfVote Checkpoint", true)
-                    .block();
-
+           return _discordClient.login().block().on(ButtonInteractionEvent.class,buttonEvent -> {
+                        if (buttonEvent.getCustomId().equals("villagerVoteButton")) {
+                            List<SelectMenu.Option> victims = potentialTargets.stream()
+                                    .map(player -> SelectMenu.Option.of(player.user().name(), player.user().name()))
+                                    .collect(Collectors.toList());
+                            SelectMenu selectMenu = SelectMenu.of(UUID.randomUUID().toString(), victims);
+                            return buttonEvent.deferReply()
+                                    .withEphemeral(true)
+                                    .then(buttonEvent.createFollowup()
+                                            .withEphemeral(true)
+                                            .withContent("This is your Voting Menu. Choose one of them, ")
+                                            .withComponents(ActionRow.of(selectMenu)))
+                                    .then(requestVillagerVoteListener(selectMenu, potentialTargets));
+                        }
+                        return Mono.empty();
+                    })
+                   .filter(Objects::nonNull)
+                   .blockFirst();
         }
 
-        private Flux<Player> requestVillagerVoteListener(PrivateChannel privateChannel, SelectMenu selectMenu, Collection<Player> potentialTargets) {
-            return privateChannel.getClient().on(SelectMenuInteractionEvent.class, event ->{
-                if (event.getCustomId().equals(selectMenu.getCustomId())){
+        private Mono<Player> requestVillagerVoteListener(SelectMenu selectMenu, Collection<Player> potentialTargets) {
+
+            return _discordClient.login().block().on(SelectMenuInteractionEvent.class, event -> {
+                if (event.getCustomId().equals(selectMenu.getCustomId())) {
                     return Mono.just(potentialTargets.stream()
-                    .filter(player -> player.user()
-                            .name().equals(event.getValues().stream()
-                                    .findFirst()
-                                    .get()))
-                    .findFirst().get());
+                            .filter(player -> player.user()
+                                    .name().equals(event.getValues().stream()
+                                            .findFirst()
+                                            .get()))
+                            .findFirst().get());
                 }
                 return Mono.empty();
-                    }).filter(player -> player != null);
+            })
+                    .filter(Objects::nonNull)
+                    .next();
         }
 
         @Override
@@ -156,13 +174,13 @@ public class DiscordPrinter implements GlobalPrinter {
     }
 
     public DiscordPrinter.DiscordWerewolfUser getDiscordWerewolfUser(Member member) {
-        return new DiscordWerewolfUser(member, _channelForAll, _channelForWerewolfes);
+        return new DiscordWerewolfUser(member, _channelForAll, _channelForWerewolfes,_discordClient);
 
     }
 
     public List<User> getDiscordWerewolfUserList(List<Member> list) {
         return list.stream()
-                .map(member -> new DiscordPrinter.DiscordWerewolfUser(member, _channelForAll, _channelForWerewolfes))
+                .map(member -> new DiscordPrinter.DiscordWerewolfUser(member, _channelForAll, _channelForWerewolfes,_discordClient))
                 .collect(Collectors.toList());
     }
 
@@ -179,8 +197,32 @@ public class DiscordPrinter implements GlobalPrinter {
 
     @Override
     public void informAboutStartOfTheVillagerVote() {
-        _channelForAll.createMessage("*Tack* *Tack* *Tack* \n" +
-                "Ok, ok, please calm down. we will make a little talk round where everyone can make their arguments and then everyone has one vote.").block();
+
+        Button button = Button.primary("villagerVoteButton", "Click here To Vote :D");
+        _channelForAll.createMessage(MessageCreateRequest
+                .builder()
+                .content("*Tack* *Tack* *Tack* \n" +
+                "Ok, ok, please calm down. we will make a little talk round where everyone can make their arguments and then everyone has one vote.")
+                .addComponent(ActionRow.of(button).getData())
+                .build())
+                .then(startOfTheVillagerVoteListener())
+                .subscribe();
+    }
+
+    private Mono<Void> startOfTheVillagerVoteListener() {
+        return _discordClient.login().block().on(ButtonInteractionEvent.class,buttonEvent -> {
+            if (buttonEvent.getCustomId().equals("villagerVoteButton")){
+                return buttonEvent.deferReply()
+                        .withEphemeral(true)
+                        .then(buttonEvent.createFollowup()
+                                .withEphemeral(true)
+                                .withContent("This is your Voting Menu. Choose one of them, ")
+                                .withComponents());
+            }
+            else return Mono.empty();
+        })
+                .then();
+
     }
 
     @Override
