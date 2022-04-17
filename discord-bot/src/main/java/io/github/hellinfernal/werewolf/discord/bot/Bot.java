@@ -2,11 +2,17 @@ package io.github.hellinfernal.werewolf.discord.bot;
 
 import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
+import discord4j.core.GatewayDiscordClient;
+import discord4j.core.event.EventDispatcher;
 import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
 import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
+import discord4j.core.object.presence.Presence;
+import discord4j.core.shard.LocalShardCoordinator;
+import discord4j.core.shard.ShardingStrategy;
 import discord4j.core.spec.MessageCreateSpec;
+import discord4j.store.jdk.JdkStoreService;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -27,12 +33,20 @@ public class Bot {
     }
 
     private DiscordClient _discordClient;
+    GatewayDiscordClient _gatewayDiscordClient;
     private Map<Snowflake, GameBootstrap> _gamesToBootstrapByChannel = new HashMap<>();
     //TODO: scheduler/timer
     private ScheduledExecutorService _scheduler = Executors.newScheduledThreadPool(1);
 
     private void start() {
         _discordClient = DiscordClient.create(System.getenv("DISCORD_BOT_API_TOKEN"));
+        _gatewayDiscordClient = _discordClient.gateway()
+                .setSharding(ShardingStrategy.recommended())
+                .setShardCoordinator(LocalShardCoordinator.create())
+                .setAwaitConnections(true)
+                .setEventDispatcher(EventDispatcher.buffering())
+                .login()
+         .block();
         _discordClient
                 .withGateway(gateway -> Mono.when( //
                         gateway.on(MessageCreateEvent.class, this::startGame) //
@@ -68,7 +82,7 @@ public class Bot {
                     if (_gamesToBootstrapByChannel.containsKey(c.getId())) {
                         return c.createMessage("game already started, wont start another one");
                     } else {
-                        final GameBootstrap bootstrap = new GameBootstrap(_discordClient, c.getId(), event.getGuildId().get());
+                        final GameBootstrap bootstrap = new GameBootstrap(_discordClient, c.getId(), event.getGuildId().get(),_gatewayDiscordClient);
                         _gamesToBootstrapByChannel.put(c.getId(), bootstrap);
                         return c.createMessage(MessageCreateSpec.builder()
                                 .content("Please click Join to join the game, game will start within the next 3 minutes.")
@@ -97,15 +111,16 @@ public class Bot {
                     .filter(v -> v.hasButton(buttonEvent.getCustomId()))
                     .findFirst()
                     .orElse(null);
+            //TODO: remove comment, this makes problems in the actual game
 
-            if (bootstrap == null) {
+            /** if (bootstrap == null) {
                 return buttonEvent
                         .deferReply()
                         .withEphemeral(true)
                         .then(buttonEvent.createFollowup("Sorry, the game you tried to interact with, already started.")
                                 .withEphemeral(true))
-                        .then();
-            }
+                        .then();} **/
+
             if (bootstrap.hasClickedRegister(buttonEvent.getCustomId()))
                 return getJoinReaction(buttonEvent, bootstrap);
             if (bootstrap.hasClickedLeave(buttonEvent.getCustomId()))

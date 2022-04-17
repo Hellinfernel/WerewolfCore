@@ -3,6 +3,7 @@ package io.github.hellinfernal.werewolf.discord.bot;
 
 import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
+import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
 import discord4j.core.event.domain.interaction.SelectMenuInteractionEvent;
 import discord4j.core.object.component.ActionRow;
@@ -46,12 +47,14 @@ public class GameBootstrap {
     private final Snowflake _channelId;
     private final RestGuild _guild;
     private int _kiUsers = 0;
+    private GatewayDiscordClient _gatewayDiscordClient;
 
 
-    public GameBootstrap(DiscordClient discordClient, final Snowflake channelId, final Snowflake guild) {
+    public GameBootstrap(DiscordClient discordClient, final Snowflake channelId, final Snowflake guild, GatewayDiscordClient gatewayDiscordClient) {
         _discordClient = discordClient;
         _channelId = channelId;
         _guild = _discordClient.getGuildById(guild);
+        _gatewayDiscordClient = gatewayDiscordClient;
     }
 
 
@@ -186,7 +189,7 @@ public class GameBootstrap {
 
         //TODO: finish it
 
-        DiscordPrinter discordPrinter = new DiscordPrinter(villagerChannel, werewolfChannel);
+        DiscordPrinter discordPrinter = new DiscordPrinter(villagerChannel, werewolfChannel,_gatewayDiscordClient);
         List<User> userList = discordPrinter.getDiscordWerewolfUserList(_members);
         for (int i = _kiUsers; i != 0; i--) {
             userList.add(new KiUser());

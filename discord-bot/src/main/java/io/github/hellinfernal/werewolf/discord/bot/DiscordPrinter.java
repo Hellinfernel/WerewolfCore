@@ -2,6 +2,7 @@ package io.github.hellinfernal.werewolf.discord.bot;
 
 import discord4j.common.util.Snowflake;
 import discord4j.core.DiscordClient;
+import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
 import discord4j.core.event.domain.interaction.SelectMenuInteractionEvent;
 import discord4j.core.object.component.ActionRow;
@@ -60,7 +61,7 @@ public class DiscordPrinter implements GlobalPrinter {
 
         @Override
         public Player requestVillagerVote(Collection<Player> potentialTargets) {
-           return _discordClient.login().block().on(ButtonInteractionEvent.class,buttonEvent -> {
+           return _gatewayDiscordClient.on(ButtonInteractionEvent.class,buttonEvent -> {
                         if (buttonEvent.getCustomId().equals("villagerVoteButton")) {
                             List<SelectMenu.Option> victims = potentialTargets.stream()
                                     .map(player -> SelectMenu.Option.of(player.user().name(), player.user().name()))
@@ -76,13 +77,12 @@ public class DiscordPrinter implements GlobalPrinter {
                         }
                         return Mono.empty();
                     })
-                   .filter(Objects::nonNull)
                    .blockFirst();
         }
 
         private Mono<Player> requestVillagerVoteListener(SelectMenu selectMenu, Collection<Player> potentialTargets) {
 
-            return _discordClient.login().block().on(SelectMenuInteractionEvent.class, event -> {
+            return _gatewayDiscordClient.on(SelectMenuInteractionEvent.class, event -> {
                 if (event.getCustomId().equals(selectMenu.getCustomId())) {
                     return Mono.just(potentialTargets.stream()
                             .filter(player -> player.user()
@@ -92,9 +92,7 @@ public class DiscordPrinter implements GlobalPrinter {
                             .findFirst().get());
                 }
                 return Mono.empty();
-            })
-                    .filter(Objects::nonNull)
-                    .next();
+            }).next();
         }
 
         @Override
@@ -162,6 +160,7 @@ public class DiscordPrinter implements GlobalPrinter {
     RestChannel _channelForAll;
     private static final Logger LOGGER = LoggerFactory.getLogger(DiscordPrinter.class);
     private DiscordClient _discordClient;
+    private GatewayDiscordClient _gatewayDiscordClient;
     RestChannel _channelForWerewolfes;
 
     @Override
@@ -188,9 +187,10 @@ public class DiscordPrinter implements GlobalPrinter {
         _discordClient = discordClient;
     }
 
-    public DiscordPrinter(RestChannel channelForAll, RestChannel channelForWerewolfes) {
+    public DiscordPrinter(RestChannel channelForAll, RestChannel channelForWerewolfes, GatewayDiscordClient gatewayDiscordClient) {
         _channelForAll = channelForAll;
         _channelForWerewolfes = channelForWerewolfes;
+        _gatewayDiscordClient = gatewayDiscordClient;
         LOGGER.debug("Printer created. \n"
                 + toString());
     }
@@ -205,12 +205,11 @@ public class DiscordPrinter implements GlobalPrinter {
                 "Ok, ok, please calm down. we will make a little talk round where everyone can make their arguments and then everyone has one vote.")
                 .addComponent(ActionRow.of(button).getData())
                 .build())
-                .then(startOfTheVillagerVoteListener())
                 .subscribe();
     }
 
-    private Mono<Void> startOfTheVillagerVoteListener() {
-        return _discordClient.login().block().on(ButtonInteractionEvent.class,buttonEvent -> {
+  /**  private Mono<Void> startOfTheVillagerVoteListener() {
+        return _gatewayDiscordClient.on(ButtonInteractionEvent.class,buttonEvent -> {
             if (buttonEvent.getCustomId().equals("villagerVoteButton")){
                 return buttonEvent.deferReply()
                         .withEphemeral(true)
@@ -223,7 +222,7 @@ public class DiscordPrinter implements GlobalPrinter {
         })
                 .then();
 
-    }
+    } **/
 
     @Override
     public void informAboutResultOfVillagerVote(Player killedPlayer) {
