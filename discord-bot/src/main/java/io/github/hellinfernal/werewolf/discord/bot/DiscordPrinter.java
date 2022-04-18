@@ -97,26 +97,39 @@ public class DiscordPrinter implements GlobalPrinter {
 
         @Override
         public Player requestWerewolfVote(Collection<Player> potentialTargets) {
-            List<SelectMenu.Option> victims = potentialTargets.stream()
-                    .map(player -> SelectMenu.Option.of(player.user().name(),player.user().name()))
-                    .collect(Collectors.toList());
-                    SelectMenu selectMenu = SelectMenu.of(UUID.randomUUID().toString(),victims);
 
 
-                return requestWerewolfVoteListener(potentialTargets).block(Duration.ofMinutes(5));
+
+                return werewolfButtonListener(potentialTargets).block();
 
 
 
 
 
         }
-        public Mono<Void> werewolfButtonListener(){
-            
-        }
-        public Mono<Player> requestWerewolfVoteListener(Collection<Player> potentialTargets) {
-            return _gatewayDiscordClient.on(SelectMenuInteractionEvent.class, event -> {
-                if (event.getCustomId().equals("werewolfVoteButton")) {
+        public Mono<Player> werewolfButtonListener(Collection<Player> potentialTargets){
+            return _gatewayDiscordClient.on(ButtonInteractionEvent.class, event -> {
+                if (event.getCustomId().equals("werewolfVoteButton")){
                     if (event.getInteraction().getMember().get() == _member){
+                        List<SelectMenu.Option> victims = potentialTargets.stream()
+                                .map(player -> SelectMenu.Option.of(player.user().name(),player.user().name()))
+                                .collect(Collectors.toList());
+                        SelectMenu selectMenu = SelectMenu.of(UUID.randomUUID().toString(),victims);
+                        return event.createFollowup()
+                                .withEphemeral(true)
+                                .withComponents(ActionRow.of(selectMenu))
+                                .then(requestWerewolfVoteListener(potentialTargets,selectMenu));
+
+                    }
+                }
+                return Mono.empty();
+            }).next();
+
+        }
+        public Mono<Player> requestWerewolfVoteListener(Collection<Player> potentialTargets, SelectMenu selectMenu) {
+            return _gatewayDiscordClient.on(SelectMenuInteractionEvent.class, event -> {
+                if (event.getCustomId().equals(selectMenu.getCustomId())) {
+
                         return Mono.just(potentialTargets.stream()
                                 .filter(player -> player.user()
                                         .name()
@@ -124,7 +137,7 @@ public class DiscordPrinter implements GlobalPrinter {
                                                 .findFirst()
                                                 .get()))
                                 .findFirst().get());
-                    }
+
 
                 }
                 return Mono.empty();
