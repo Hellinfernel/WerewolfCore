@@ -8,6 +8,7 @@ import io.github.hellinfernal.werewolf.core.role.SpecialRole;
 import io.github.hellinfernal.werewolf.core.user.ConsolePrinter;
 import io.github.hellinfernal.werewolf.core.user.GlobalPrinter;
 import io.github.hellinfernal.werewolf.core.user.User;
+import io.github.hellinfernal.werewolf.core.vote.VoteMachineFactory;
 import io.github.hellinfernal.werewolf.core.winningcondition.AmorLoversWinningCondition;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
@@ -35,8 +36,9 @@ class RunningGameTest {
         usersThatWantToPlay.add(new TestUser());
         usersThatWantToPlay.add(new TestUser());
         usersThatWantToPlay.add(new TestUser());
+        VoteMachineFactory voteStrategy = new VoteMachineFactory(VoteMachineFactory.Machines.IMPERATIV_MACHINE);
 
-        final Game game = new Game(usersThatWantToPlay,getGlobalPrinter());
+        final Game game = new Game(usersThatWantToPlay,getGlobalPrinter(), voteStrategy);
 
         assertThat(game.getPlayers().stream().filter(p -> p.role().equals(Werewolf)).count()).isEqualTo(1);
         assertThat(game.getPlayers().stream().filter(p -> p.role().equals(GameRole.Villager)).count()).isEqualTo(3);
@@ -55,8 +57,9 @@ class RunningGameTest {
         usersThatWantToPlay.add(aleks);
         usersThatWantToPlay.add(peter);
         usersThatWantToPlay.add(lisa);
+        VoteMachineFactory voteStrategy = new VoteMachineFactory(VoteMachineFactory.Machines.IMPERATIV_MACHINE);
 
-        final Game game = new Game(usersThatWantToPlay,getGlobalPrinter());
+        final Game game = new Game(usersThatWantToPlay,getGlobalPrinter(), voteStrategy);
         final VillagerMove villagerMove = new VillagerMove(game);
 
         assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks, peter, lisa, kevin);
@@ -113,8 +116,9 @@ class RunningGameTest {
         usersThatWantToPlay.add(peter);
         usersThatWantToPlay.add(lisa);
         usersThatWantToBeWerewolfes.add(nostradamus);
+        VoteMachineFactory voteStrategy = new VoteMachineFactory(VoteMachineFactory.Machines.IMPERATIV_MACHINE);
 
-        final Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,getGlobalPrinter());
+        final Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,getGlobalPrinter(), voteStrategy);
         assertThat(game.getAliveWerewolfPlayers()).hasSize(1);
         assertThat(game.getAliveVillagerPlayers()).hasSize(4);
         assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(aleks, peter, lisa, kevin, nostradamus);
@@ -144,8 +148,9 @@ class RunningGameTest {
         usersThatWantToPlay.add(villager2);
         usersThatWantToPlay.add(villager3);
         usersThatWantToPlay.add(villager4);
+        VoteMachineFactory voteStrategy = new VoteMachineFactory(VoteMachineFactory.Machines.IMPERATIV_MACHINE);
 
-        final Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,getGlobalPrinter());
+        final Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,getGlobalPrinter(), voteStrategy);
         final List<TestUser> villager4VoteList = new ArrayList<>();
         villager4VoteList.add(villager2);
         villager4VoteList.add(werewolf1);
@@ -179,6 +184,7 @@ class RunningGameTest {
         usersThatWantToPlay.add(villager2);
         usersThatWantToPlay.add(villager3);
         usersThatWantToPlay.add(villager4);
+        VoteMachineFactory voteStrategy = new VoteMachineFactory(VoteMachineFactory.Machines.IMPERATIV_MACHINE);
 
 
         // test user erzeugen
@@ -188,7 +194,7 @@ class RunningGameTest {
         // zug ausführen -> playround
         // wen voten die test user beim nächsten zug?
 
-        final Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,getGlobalPrinter());
+        final Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,getGlobalPrinter(), voteStrategy);
 
         // first round is played at night -> so only werewolfs are allowed to vote
         werewolf1.changeVote(voteUser(villager1));
@@ -245,8 +251,9 @@ class RunningGameTest {
         usersThatWantToPlay.add(villager1);
         usersThatWantToBeWerewolfes.add(werewolf1);
         usersThatWantToBeWitches.put(SpecialRole.Witch,witch1);
+        VoteMachineFactory voteStrategy = new VoteMachineFactory(VoteMachineFactory.Machines.IMPERATIV_MACHINE);
 
-        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeWitches,getGlobalPrinter());
+        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeWitches,getGlobalPrinter(), voteStrategy);
 
         werewolf1.changeVote(voteUser(villager1));
         witch1.set_reanimationVote(voteUser(villager1));
@@ -277,6 +284,7 @@ class RunningGameTest {
         //dies in the second night because of the potion
         final TestUser werewolf2 = new TestUser("Alina");
         final TestUser witch1 = new TestUser("Hexe");
+        VoteMachineFactory voteStrategy = new VoteMachineFactory(VoteMachineFactory.Machines.IMPERATIV_MACHINE);
 
         usersThatWantToPlay.add(villager1);
         usersThatWantToPlay.add(villager2);
@@ -286,7 +294,7 @@ class RunningGameTest {
         usersThatWantToBeWerewolfes.add(werewolf2);
         usersThatWantToBeWitches.put(SpecialRole.Witch,witch1);
 
-        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeWitches,getGlobalPrinter());
+        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeWitches,getGlobalPrinter(), voteStrategy);
         assertThat(game.getPlayers()).extracting(Player::user).contains(villager1,villager2,villager3,villager4,werewolf1,werewolf2,witch1);
 
         werewolf1.changeVote(voteUser(villager1));
@@ -392,9 +400,10 @@ class RunningGameTest {
         usersThatWantToBeWitches.put(SpecialRole.Witch,witch1);
 
         witch1.setKillPotionVote(voteUser(villager2));
+        VoteMachineFactory voteStrategy = new VoteMachineFactory(VoteMachineFactory.Machines.IMPERATIV_MACHINE);
 
 
-        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeWitches,getGlobalPrinter());
+        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeWitches,getGlobalPrinter(), voteStrategy);
 
         game.getWitchMove2().execute();
 
@@ -426,9 +435,10 @@ class RunningGameTest {
         listOfLovers.add(werewolf);
 
         amor.setLoverVote(voteUser(listOfLovers));
+        VoteMachineFactory voteStrategy = new VoteMachineFactory(VoteMachineFactory.Machines.IMPERATIV_MACHINE);
 
 
-        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeAmors,getGlobalPrinter());
+        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeAmors,getGlobalPrinter(), voteStrategy);
         game.getAmorMove().execute();
 
         assertThat(game.getPlayer(villager1).specialRoles()).containsOnly(SpecialRole.Lover);
@@ -470,9 +480,10 @@ class RunningGameTest {
         listOfLovers.add(villager2);
 
         amor.setLoverVote(voteUser(listOfLovers));
+        VoteMachineFactory voteStrategy = new VoteMachineFactory(VoteMachineFactory.Machines.IMPERATIV_MACHINE);
 
 
-        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeAmors,getGlobalPrinter());
+        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeAmors,getGlobalPrinter(), voteStrategy);
         game.getAmorMove().execute();
 
         assertThat(game.getPlayer(villager1).specialRoles()).containsOnly(SpecialRole.Lover);
@@ -501,14 +512,132 @@ class RunningGameTest {
         usersThatWantToPlay.add(villager1);
         usersThatWantToBeWerewolfes.add(werewolf);
         usersThatWantToBeHunters.put(SpecialRole.Hunter,hunter);
+        VoteMachineFactory voteStrategy = new VoteMachineFactory(VoteMachineFactory.Machines.IMPERATIV_MACHINE);
 
-        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeHunters,getGlobalPrinter());
+        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeHunters,getGlobalPrinter(), voteStrategy);
 
         werewolf.changeVote(voteUser(hunter));
         hunter.setHunterVote(voteUser(werewolf));
 
         game.getWerewolfMove().execute();
         assertThat(game.getLastKilledPlayer()).extracting(Player::user).isEqualTo(werewolf);
+
+
+    }
+    @RepeatedTest(100)
+    void BigGameTestReactiveVoteMachine(){
+        final List<User> usersThatWantToPlay = new ArrayList<>();
+        final List<User> usersThatWantToBeWerewolfes = new ArrayList<>();
+        final Map<SpecialRole,User> usersThatWantToBeWitches= Collections.synchronizedMap(new EnumMap<SpecialRole,User>(SpecialRole.class));
+
+        final TestUser villager1 = new TestUser("Aleks");
+        // dies in the first Night, gets reanimated, dies again in the second night lol
+        final TestUser villager2 = new TestUser("Chris");
+        //dies at the first day :D
+        final TestUser villager3 = new TestUser("Ismael");
+        final TestUser villager4 = new TestUser("Saskia");
+
+        final TestUser werewolf1 = new TestUser("Nostradamus");
+        //dies in the second night because of the potion
+        final TestUser werewolf2 = new TestUser("Alina");
+        final TestUser witch1 = new TestUser("Hexe");
+        VoteMachineFactory voteStrategy = new VoteMachineFactory(VoteMachineFactory.Machines.REACTIVE_MACHINE);
+
+        usersThatWantToPlay.add(villager1);
+        usersThatWantToPlay.add(villager2);
+        usersThatWantToPlay.add(villager3);
+        usersThatWantToPlay.add(villager4);
+        usersThatWantToBeWerewolfes.add(werewolf1);
+        usersThatWantToBeWerewolfes.add(werewolf2);
+        usersThatWantToBeWitches.put(SpecialRole.Witch,witch1);
+
+        Game game = new Game(usersThatWantToPlay,usersThatWantToBeWerewolfes,usersThatWantToBeWitches,getGlobalPrinter(), voteStrategy);
+        assertThat(game.getPlayers()).extracting(Player::user).contains(villager1,villager2,villager3,villager4,werewolf1,werewolf2,witch1);
+
+        werewolf1.changeVote(voteUser(villager1));
+        werewolf2.changeVote(voteUser(villager1));
+
+
+        witch1.set_reanimationVote(voteUser(villager1));
+        assertThat(game.isDay()).isFalse();
+
+        assertThat(game.playStandardRound())
+                .describedAs("Game has finished too early.")
+                .isFalse();
+
+        assertThat(game.getKilledPlayers()).isEmpty();
+
+        werewolf1.changeVote(voteUser(villager2));
+        werewolf2.changeVote(voteUser(villager2));
+        villager1.changeVote(voteUser(villager2));
+        villager2.changeVote(voteUser(werewolf1));
+        villager3.changeVote(voteUser(werewolf1));
+        villager4.changeVote(voteUser(werewolf1));
+        List<TestUser> voteListWitch = new ArrayList<>();
+        voteListWitch.add(werewolf2);
+        voteListWitch.add(villager2);
+        witch1.changeVote(voteUser(voteListWitch));
+
+        assertThat(game.playStandardRound())
+                .describedAs("Game has finished too early.")
+                .isFalse();
+        assertThat(game.getLastKilledPlayer()).extracting(Player::user).isEqualTo(villager2);
+
+        werewolf1.changeVote(voteUser(villager1));
+        werewolf2.changeVote(voteUser(villager1));
+
+        witch1.setKillPotionVote(voteUser(werewolf1));
+
+        assertThat(game.playStandardRound())
+                .describedAs("Game has finished too early.")
+                .isFalse();
+        assertThat(game.getLastKilledPlayer()).extracting(Player::user).isEqualTo(werewolf1);
+        assertThat(game.getKilledPlayers()).extracting(Player::user).containsOnly(villager1,villager2,werewolf1);
+        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(villager3,villager4,werewolf2,witch1);
+        //this just exists because i want a overfew who is alive and who not :D
+
+        villager3.changeVote(voteUser(witch1));
+        villager4.changeVote(voteUser(witch1));
+        werewolf2.changeVote(voteUser(witch1));
+        witch1.changeVote(voteUser(werewolf2));
+
+
+        assertThat(game.playStandardRound())
+                .describedAs("Game Has finished")
+                .isFalse();
+
+        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(villager3,villager4,werewolf2);
+        assertThat(game.getLastKilledPlayer()).extracting(Player::user).isEqualTo(witch1);
+
+        werewolf2.changeVote(voteUser(villager3));
+
+        assertThat(game.playStandardRound())
+                .describedAs("Game Has finished")
+                .isTrue();
+        assertThat(game.getAlivePlayers()).extracting(Player::user).containsOnly(villager4,werewolf2);
+        assertThat(game.getLastKilledPlayer()).extracting(Player::user).isEqualTo(villager3);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     }

@@ -3,6 +3,7 @@ package io.github.hellinfernal.werewolf.core.game;
 import io.github.hellinfernal.werewolf.core.Game;
 import io.github.hellinfernal.werewolf.core.player.Player;
 import io.github.hellinfernal.werewolf.core.user.GlobalPrinter;
+import io.github.hellinfernal.werewolf.core.vote.ImperativVotingMachine;
 import io.github.hellinfernal.werewolf.core.vote.VotingMachine;
 
 import java.util.ArrayList;
@@ -38,7 +39,7 @@ public class WerewolfMove implements GameMove {
         final List<Player> hunters = new ArrayList<>(_game.getAliveWerewolfPlayers());
         final List<Player> victims = _game.getAliveVillagerPlayers();
 
-        final VotingMachine votingMachine = new VotingMachine(hunters, victims, (player, players) -> player.user().requestWerewolfVote(players));
+        final VotingMachine votingMachine = _game.get_voteStrategy(hunters, victims, (player, players) -> player.user().requestWerewolfVote(players));
 
         //TODO: warten bis eine antwort da ist
         /**

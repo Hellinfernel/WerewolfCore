@@ -101,30 +101,30 @@ public class DiscordPrinter implements GlobalPrinter {
                     .map(player -> SelectMenu.Option.of(player.user().name(),player.user().name()))
                     .collect(Collectors.toList());
                     SelectMenu selectMenu = SelectMenu.of(UUID.randomUUID().toString(),victims);
-                    PrivateChannel privateChannel = _member.getPrivateChannel().block();
 
-                return privateChannel.createMessage()
-                        .withContent("Ok, my fellow Werewolf... who are we going to hunt?")
-                        .withComponents(ActionRow.of(selectMenu))
-                        .then(requestWerewolfVoteListener(privateChannel, selectMenu, potentialTargets))
-                        .checkpoint("WerewolfVote Checkpoint",true)
-                        .block(Duration.ofMinutes(5));
+
+                return requestWerewolfVoteListener(potentialTargets).block(Duration.ofMinutes(5));
 
 
 
 
 
         }
-        public Mono<Player> requestWerewolfVoteListener(PrivateChannel privateChannel, SelectMenu selectMenu, Collection<Player> potentialTargets) {
-            return privateChannel.getClient().on(SelectMenuInteractionEvent.class, event -> {
-                if (event.getCustomId().equals(selectMenu.getCustomId())) {
-                    return Mono.just(potentialTargets.stream()
-                            .filter(player -> player.user()
-                                    .name()
-                                    .equals(event.getValues().stream()
-                                            .findFirst()
-                                            .get()))
-                            .findFirst().get());
+        public Mono<Void> werewolfButtonListener(){
+            
+        }
+        public Mono<Player> requestWerewolfVoteListener(Collection<Player> potentialTargets) {
+            return _gatewayDiscordClient.on(SelectMenuInteractionEvent.class, event -> {
+                if (event.getCustomId().equals("werewolfVoteButton")) {
+                    if (event.getInteraction().getMember().get() == _member){
+                        return Mono.just(potentialTargets.stream()
+                                .filter(player -> player.user()
+                                        .name()
+                                        .equals(event.getValues().stream()
+                                                .findFirst()
+                                                .get()))
+                                .findFirst().get());
+                    }
 
                 }
                 return Mono.empty();
@@ -259,7 +259,12 @@ public class DiscordPrinter implements GlobalPrinter {
     @Override
     public void informAboutStartOfTheHunt() {
         _channelForAll.createMessage("The Hunt begins...").block();
-        _channelForWerewolfes.createMessage("Ok, my fellow Werewolf... who are we going to hunt?").block();
+        Button button = Button.danger("werewolfVoteButton","Choose your victim...");
+        _channelForWerewolfes.createMessage(MessageCreateRequest.builder()
+                .content("Ok, my fellow Werewolf... who are we going to hunt?")
+                .addComponent(ActionRow.of(button).getData())
+                .build())
+                .subscribe();
 
     }
 

@@ -3,6 +3,7 @@ package io.github.hellinfernal.werewolf.core.game;
 import io.github.hellinfernal.werewolf.core.Game;
 import io.github.hellinfernal.werewolf.core.player.Player;
 import io.github.hellinfernal.werewolf.core.role.SpecialRole;
+import io.github.hellinfernal.werewolf.core.vote.ImperativVotingMachine;
 import io.github.hellinfernal.werewolf.core.vote.VotingMachine;
 
 import java.util.List;
@@ -24,7 +25,7 @@ public class WitchMove2 implements GameMove{
         }
 
         final List<Player> alivePlayers = _game.getAlivePlayers();
-        final VotingMachine votingMachine = new VotingMachine(List.of(playerWithWitchRole.get()), alivePlayers, (player, players) -> player.user().requestKillPotionUse(players));
+        final VotingMachine votingMachine = _game.get_voteStrategy(List.of(playerWithWitchRole.get()), alivePlayers, (player, players) -> player.user().requestKillPotionUse(players));
 
         votingMachine.voteHighest().ifPresent(Player::kill);
     }

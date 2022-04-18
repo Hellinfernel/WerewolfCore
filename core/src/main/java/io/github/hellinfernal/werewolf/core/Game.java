@@ -1,6 +1,5 @@
 package io.github.hellinfernal.werewolf.core;
 
-import discord4j.common.util.Snowflake;
 import io.github.hellinfernal.werewolf.core.game.*;
 import io.github.hellinfernal.werewolf.core.player.GamePlayer;
 import io.github.hellinfernal.werewolf.core.player.Player;
@@ -8,15 +7,17 @@ import io.github.hellinfernal.werewolf.core.role.GameRole;
 import io.github.hellinfernal.werewolf.core.role.SpecialRole;
 import io.github.hellinfernal.werewolf.core.user.GlobalPrinter;
 import io.github.hellinfernal.werewolf.core.user.User;
+import io.github.hellinfernal.werewolf.core.vote.VoteMachineFactory;
+import io.github.hellinfernal.werewolf.core.vote.VotingMachine;
 import io.github.hellinfernal.werewolf.core.winningcondition.VillagerWinningCondition;
 import io.github.hellinfernal.werewolf.core.winningcondition.WerewolfWinningCondition;
 import io.github.hellinfernal.werewolf.core.winningcondition.WinningCondition;
-import io.netty.handler.ssl.ApplicationProtocolConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -41,6 +42,8 @@ public class Game {
     private final GameRound _nightRound = new NightRound(this);
     private final GameRound _dayRound = new DayRound();
 
+    private final VoteMachineFactory _voteStrategy;
+
     private final GameMove _werewolfMove = new WerewolfMove(this);
     private final GameMove _villagerMove = new VillagerMove(this);
 
@@ -55,8 +58,9 @@ public class Game {
     private final Protocol protocol;
 
 
-    public Game(final List<User> usersThatWantToPlay,final List<GlobalPrinter> globalPrinters) {
+    public Game(final List<User> usersThatWantToPlay, final List<GlobalPrinter> globalPrinters, VoteMachineFactory voteStrategy) {
         _globalPrinters = globalPrinters;
+        _voteStrategy = voteStrategy;
         isDay = false;
         protocol = new Protocol("Game");
         final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size());
@@ -80,14 +84,14 @@ public class Game {
     }
 
     /**
-     *
-     * @param usersThatWantToPlay
+     *  @param usersThatWantToPlay
      * Contains users who have no prefered role
      * @param usersThatWantToBeWerewolfes
-     * contains users who want to be Werewolfes
+     * @param voteStrategy
      */
-    public Game(final List<User> usersThatWantToPlay,final List<User> usersThatWantToBeWerewolfes,final List<GlobalPrinter> globalPrinters) {
+    public Game(final List<User> usersThatWantToPlay, final List<User> usersThatWantToBeWerewolfes, final List<GlobalPrinter> globalPrinters, VoteMachineFactory voteStrategy) {
         _globalPrinters = globalPrinters;
+        _voteStrategy = voteStrategy;
         isDay = false;
         protocol = new Protocol("Game");
         final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size()+ usersThatWantToBeWerewolfes.size());
@@ -122,16 +126,16 @@ public class Game {
     }
 
     /**
-     *
-     * @param usersThatWantToPlay
+     *  @param usersThatWantToPlay
      *       Contains users who have no prefered role
      *       @param usersThatWantToBeWerewolfes
      *       contains users who want to be Werewolfes
      * @param PlayersWithASpecialRole
-     * contains users who want a special role :D
+     * @param voteStrategy
      */
-    public Game(final List<User> usersThatWantToPlay, final List<User> usersThatWantToBeWerewolfes, final Map<SpecialRole,User> PlayersWithASpecialRole,final List<GlobalPrinter> globalPrinters) {
+    public Game(final List<User> usersThatWantToPlay, final List<User> usersThatWantToBeWerewolfes, final Map<SpecialRole, User> PlayersWithASpecialRole, final List<GlobalPrinter> globalPrinters, VoteMachineFactory voteStrategy) {
         _globalPrinters = globalPrinters;
+        _voteStrategy = voteStrategy;
         isDay = false;
         protocol = new Protocol("Game");
         final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size()+ usersThatWantToBeWerewolfes.size());
@@ -359,5 +363,9 @@ public class Game {
 
     public void acceptGlobalPrinterMethod(Consumer<GlobalPrinter> action){
         _globalPrinters.forEach(action::accept);
+    }
+
+    public VotingMachine get_voteStrategy(List<Player> voters, List<Player> playerSelection, BiFunction<Player,Collection<Player>,Player> votingFunction) {
+        return _voteStrategy.generateVotingMachine(voters,playerSelection,votingFunction);
     }
 }

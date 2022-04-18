@@ -194,7 +194,7 @@ public class GameBootstrap {
         for (int i = _kiUsers; i != 0; i--) {
             userList.add(new KiUser());
         }
-        Game game = new Game(userList, List.of(discordPrinter));
+        Game game = new Game(userList, List.of(discordPrinter), voteStrategy);
 
         for (final Player player : game.getPlayers()) {
             if (!(player.user() instanceof DiscordPrinter.DiscordWerewolfUser)) {
