@@ -78,6 +78,7 @@ public class Bot {
             return Mono.empty();
         }
 
+
         return event.getMessage().getChannel().flatMap(c -> {
                     if (_gamesToBootstrapByChannel.containsKey(c.getId())) {
                         return c.createMessage("game already started, wont start another one");
@@ -120,15 +121,19 @@ public class Bot {
                         .then(buttonEvent.createFollowup("Sorry, the game you tried to interact with, already started.")
                                 .withEphemeral(true))
                         .then();} **/
-
-            if (bootstrap.hasClickedRegister(buttonEvent.getCustomId()))
-                return getJoinReaction(buttonEvent, bootstrap);
-            if (bootstrap.hasClickedLeave(buttonEvent.getCustomId()))
-                return getLeaveReaction(buttonEvent, bootstrap);
-            if (bootstrap.hasClickedConfig(buttonEvent.getCustomId())) {
-                return getConfigReaction(buttonEvent, bootstrap);
+            if (bootstrap != null){
+                if (bootstrap.hasClickedRegister(buttonEvent.getCustomId()))
+                    return getJoinReaction(buttonEvent, bootstrap);
+                if (bootstrap.hasClickedLeave(buttonEvent.getCustomId()))
+                    return getLeaveReaction(buttonEvent, bootstrap);
+                if (bootstrap.hasClickedConfig(buttonEvent.getCustomId())) {
+                    return getConfigReaction(buttonEvent, bootstrap);
+                }
+                return Mono.empty();
             }
             return Mono.empty();
+
+
 
 
         }).then();

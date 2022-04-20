@@ -9,7 +9,9 @@ import discord4j.core.object.component.ActionRow;
 import discord4j.core.object.component.Button;
 import discord4j.core.object.component.SelectMenu;
 import discord4j.core.object.entity.Member;
+import discord4j.core.object.entity.channel.Channel;
 import discord4j.core.object.entity.channel.PrivateChannel;
+import discord4j.core.object.entity.channel.TextChannel;
 import discord4j.discordjson.json.MessageCreateRequest;
 import discord4j.rest.entity.RestChannel;
 import io.github.hellinfernal.werewolf.core.player.Player;
@@ -33,18 +35,19 @@ import java.util.stream.Collectors;
 public class DiscordPrinter implements GlobalPrinter {
     public class DiscordWerewolfUser implements User {
         Member _member;
-        RestChannel _channelForAll;
-        RestChannel _channelForWerewolfes;
+        Snowflake _channelForAll;
+        Snowflake _channelForWerewolfes;
         DiscordClient _discordClient;
 
 
 
-        public DiscordWerewolfUser(Member member, RestChannel channelForAll, RestChannel channelForWerewolfes, DiscordClient discordClient) {
+        public DiscordWerewolfUser(Member member, Snowflake channelForAll, Snowflake channelForWerewolfes, DiscordClient discordClient) {
             _member = member;
             _channelForAll = channelForAll;
             _channelForWerewolfes = channelForWerewolfes;
             _discordClient = discordClient;
             LOGGER.debug("DiscordWerewolfUser created: " + member.getTag());
+
 
 
         }
@@ -77,7 +80,8 @@ public class DiscordPrinter implements GlobalPrinter {
                         }
                         return Mono.empty();
                     })
-                   .blockFirst();
+                   .checkpoint("VillagerVote requested from: " + _member.getUsername())
+                   .blockFirst(Duration.ofMinutes(5));
         }
 
         private Mono<Player> requestVillagerVoteListener(SelectMenu selectMenu, Collection<Player> potentialTargets) {
@@ -92,7 +96,8 @@ public class DiscordPrinter implements GlobalPrinter {
                             .findFirst().get());
                 }
                 return Mono.empty();
-            }).next();
+            }).checkpoint("requestVillagerVoteListener created for Player: " + _member.getUsername())
+                    .next();
         }
 
         @Override
@@ -100,7 +105,7 @@ public class DiscordPrinter implements GlobalPrinter {
 
 
 
-                return werewolfButtonListener(potentialTargets).block();
+                return werewolfButtonListener(potentialTargets).block(Duration.ofMinutes(5));
 
 
 
@@ -110,7 +115,7 @@ public class DiscordPrinter implements GlobalPrinter {
         public Mono<Player> werewolfButtonListener(Collection<Player> potentialTargets){
             return _gatewayDiscordClient.on(ButtonInteractionEvent.class, event -> {
                 if (event.getCustomId().equals("werewolfVoteButton")){
-                    if (event.getInteraction().getMember().get() == _member){
+                    if (event.getInteraction().getMember().get().equals(_member) ){
                         List<SelectMenu.Option> victims = potentialTargets.stream()
                                 .map(player -> SelectMenu.Option.of(player.user().name(),player.user().name()))
                                 .collect(Collectors.toList());
@@ -121,9 +126,11 @@ public class DiscordPrinter implements GlobalPrinter {
                                 .then(requestWerewolfVoteListener(potentialTargets,selectMenu));
 
                     }
+
                 }
                 return Mono.empty();
-            }).next();
+            })
+                    .checkpoint("werewolfButtonListener created for: " + _member.getUsername()).next();
 
         }
         public Mono<Player> requestWerewolfVoteListener(Collection<Player> potentialTargets, SelectMenu selectMenu) {
@@ -143,7 +150,8 @@ public class DiscordPrinter implements GlobalPrinter {
                 return Mono.empty();
             })
                     .filter(potentialTargets::contains)
-                    .next();
+                    .next()
+                    .checkpoint(_member.getUsername() + " choosed a player :D (Werewolf)");
         }
 
         @Override
@@ -170,17 +178,19 @@ public class DiscordPrinter implements GlobalPrinter {
     }
 
     //TODO: ich glaub eher dass wir hier den RestChannel brauchen, musst getestet werden
-    RestChannel _channelForAll;
+    //TODO: der Discord4J Server meint, dass wir auf REST verzichten sollten :D
+    //TODO: also ich hab mal auf snowflakes umgestellt xD
+    Snowflake _channelForAll;
     private static final Logger LOGGER = LoggerFactory.getLogger(DiscordPrinter.class);
     private DiscordClient _discordClient;
     private GatewayDiscordClient _gatewayDiscordClient;
-    RestChannel _channelForWerewolfes;
+    Snowflake _channelForWerewolfes;
 
     @Override
     public String toString() {
         return "DiscordPrinter{" +
-                " \n _channelForAll=" + _channelForAll.toString() +
-                ", \n  _channelForWerewolfes=" + _channelForWerewolfes.toString() +
+                " \n _channelForAll=" + _channelForAll.asString() +
+                ", \n  _channelForWerewolfes=" + _channelForWerewolfes.asString() +
                 ", \n  _discordClient=" + _discordClient +
                 '}';
     }
@@ -196,28 +206,30 @@ public class DiscordPrinter implements GlobalPrinter {
                 .collect(Collectors.toList());
     }
 
-    public DiscordPrinter(DiscordClient discordClient, Snowflake channelId) {
-        _discordClient = discordClient;
-    }
+   // public DiscordPrinter(DiscordClient discordClient, Snowflake channelId) {
+    //    _discordClient = discordClient;
+   // }
 
-    public DiscordPrinter(RestChannel channelForAll, RestChannel channelForWerewolfes, GatewayDiscordClient gatewayDiscordClient) {
+    public DiscordPrinter(Snowflake channelForAll, Snowflake channelForWerewolfes, GatewayDiscordClient gatewayDiscordClient) {
         _channelForAll = channelForAll;
         _channelForWerewolfes = channelForWerewolfes;
         _gatewayDiscordClient = gatewayDiscordClient;
         LOGGER.debug("Printer created. \n"
                 + toString());
+        //_gatewayDiscordClient.getGuildById().block().getChannels()
     }
 
     @Override
     public void informAboutStartOfTheVillagerVote() {
 
         Button button = Button.primary("villagerVoteButton", "Click here To Vote :D");
-        _channelForAll.createMessage(MessageCreateRequest
-                .builder()
-                .content("*Tack* *Tack* *Tack* \n" +
-                "Ok, ok, please calm down. we will make a little talk round where everyone can make their arguments and then everyone has one vote.")
-                .addComponent(ActionRow.of(button).getData())
-                .build())
+        _gatewayDiscordClient.getChannelById(_channelForAll)
+                .ofType(TextChannel.class)
+                .flatMap(channel -> channel.createMessage()
+                .withContent("*Tack* *Tack* *Tack* \n" +
+                        "Ok, ok, please calm down. we will make a little talk round where everyone can make their arguments and then everyone has one vote.")
+                .withComponents(ActionRow.of(button)))
+                .checkpoint("VillagerVote Started")
                 .subscribe();
     }
 
@@ -239,7 +251,11 @@ public class DiscordPrinter implements GlobalPrinter {
 
     @Override
     public void informAboutResultOfVillagerVote(Player killedPlayer) {
-        _channelForAll.createMessage(killedPlayer.user().name() + " was killed.").block();
+        _gatewayDiscordClient.getChannelById(_channelForAll)
+                .ofType(TextChannel.class)
+                .flatMap(channel -> channel.createMessage(killedPlayer.user().name() + " was killed."))
+                .checkpoint(killedPlayer.user().name() + " was killed.")
+                .subscribe();
 
     }
 
@@ -247,43 +263,62 @@ public class DiscordPrinter implements GlobalPrinter {
     public void informAboutThingsHappendInNight() {
         LOGGER.debug("informAboutThingsHappendInNight() needs to be inplemented.");
         //TODO: implement.
-        _channelForAll.createMessage("not inplemented yet.").block();
+        _gatewayDiscordClient.getChannelById(_channelForAll)
+                .ofType(TextChannel.class)
+        .flatMap(channel -> channel.createMessage("not inplemented yet."))
+                .checkpoint("informAboutThingsHappendInNight() needs to be inplemented.").subscribe();
 
     }
 
     @Override
     public void informAboutGameEnd() {
-        _channelForAll.createMessage("The Game ended!").block();
+        _gatewayDiscordClient.getChannelById(_channelForAll)
+                .ofType(TextChannel.class)
+        .flatMap(channel -> channel.createMessage("The Game ended!"))
+                .checkpoint("The Game is Over :D").subscribe();
 
     }
 
     @Override
     public void informAboutChangeToDayTime() {
-        _channelForAll.createMessage("The sun arises...").block();
+        _gatewayDiscordClient.getChannelById(_channelForAll)
+                .ofType(TextChannel.class)
+                .flatMap(channel -> channel.createMessage("The sun arises..."))
+                .checkpoint("Its now Day").subscribe();
 
     }
 
     @Override
     public void informAboutChangeToNightTime() {
-        _channelForAll.createMessage("The sun goes down...").block();
+        _gatewayDiscordClient.getChannelById(_channelForAll)
+                .ofType(TextChannel.class)
+                .flatMap(channel -> channel.createMessage("The sun goes down..."))
+                .checkpoint("Its now Night").subscribe();
 
     }
 
     @Override
     public void informAboutStartOfTheHunt() {
-        _channelForAll.createMessage("The Hunt begins...").block();
+        _gatewayDiscordClient.getChannelById(_channelForAll)
+                .ofType(TextChannel.class)
+                .flatMap(channel -> channel.createMessage("The Hunt begins..."))
+                .subscribe();
         Button button = Button.danger("werewolfVoteButton","Choose your victim...");
-        _channelForWerewolfes.createMessage(MessageCreateRequest.builder()
-                .content("Ok, my fellow Werewolf... who are we going to hunt?")
-                .addComponent(ActionRow.of(button).getData())
-                .build())
+        _gatewayDiscordClient.getChannelById(_channelForWerewolfes)
+                .ofType(TextChannel.class)
+                .flatMap(channel -> channel.createMessage()
+                .withContent("Ok, my fellow Werewolf... who are we going to hunt?")
+                .withComponents(ActionRow.of(button)))
+                .checkpoint("Start of the Hunt")
                 .subscribe();
 
     }
 
     @Override
     public void informAboutEndOfTheHunt() {
-        _channelForAll.createMessage("The Hunt ended...").block();
+        _gatewayDiscordClient.getChannelById(_channelForAll)
+                .ofType(TextChannel.class)
+        .flatMap(channel -> channel.createMessage("The Hunt ended...")).checkpoint("End of the Hunt").subscribe();
 
     }
 

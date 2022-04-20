@@ -6,26 +6,39 @@ import discord4j.core.DiscordClient;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
 import discord4j.core.event.domain.interaction.SelectMenuInteractionEvent;
+import discord4j.core.object.PermissionOverwrite;
 import discord4j.core.object.component.ActionRow;
 import discord4j.core.object.component.Button;
 import discord4j.core.object.component.SelectMenu;
+import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.Member;
 import discord4j.core.object.entity.Message;
+import discord4j.core.object.entity.channel.CategorizableChannel;
+import discord4j.core.object.entity.channel.Category;
+import discord4j.core.object.entity.channel.Channel;
+import discord4j.core.object.entity.channel.TextChannel;
 import discord4j.core.object.reaction.ReactionEmoji;
 import discord4j.core.spec.MessageEditSpec;
+import discord4j.core.spec.TextChannelCreateSpec;
 import discord4j.discordjson.json.ChannelCreateRequest;
+import discord4j.discordjson.json.ChannelData;
 import discord4j.discordjson.json.PermissionsEditRequest;
 import discord4j.rest.entity.RestChannel;
 import discord4j.rest.entity.RestGuild;
+import discord4j.rest.util.Permission;
+import discord4j.rest.util.PermissionSet;
 import io.github.hellinfernal.werewolf.core.Game;
 import io.github.hellinfernal.werewolf.core.player.Player;
 import io.github.hellinfernal.werewolf.core.role.GameRole;
 import io.github.hellinfernal.werewolf.core.role.SpecialRole;
 import io.github.hellinfernal.werewolf.core.user.User;
+import io.github.hellinfernal.werewolf.core.vote.VoteMachineFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -45,16 +58,27 @@ public class GameBootstrap {
     private final Set<String> _buttonIds = Set.of(_registerButton.getCustomId().get(), _leaveButton.getCustomId().get(), _configButton.getCustomId().get());
     private              DiscordClient _discordClient;
     private final Snowflake _channelId;
-    private final RestGuild _guild;
+    private final Mono<Guild> _guild;
     private int _kiUsers = 0;
+    private Snowflake _category;
     private GatewayDiscordClient _gatewayDiscordClient;
 
 
     public GameBootstrap(DiscordClient discordClient, final Snowflake channelId, final Snowflake guild, GatewayDiscordClient gatewayDiscordClient) {
         _discordClient = discordClient;
         _channelId = channelId;
-        _guild = _discordClient.getGuildById(guild);
+        _guild = gatewayDiscordClient.getGuildById(guild);
         _gatewayDiscordClient = gatewayDiscordClient;
+        _category = searchForGameChannel();
+    }
+
+    private Snowflake searchForGameChannel() {
+        return _guild.flatMapMany(guild -> guild.getChannels())
+                .ofType(Category.class)
+                .filter(category -> category.getName().equals("Werewolf Game X"))
+                .map(category -> category.getId())
+                .next()
+                .block(Duration.ofMinutes(1));
     }
 
 
@@ -123,7 +147,7 @@ public class GameBootstrap {
     }
 
     public boolean hasClickedRegister(final String customId) {
-        return _registerButton.getCustomId().get().equalsIgnoreCase(customId);
+        return _registerButton.getCustomId().orElse("fart").equalsIgnoreCase(customId);
     }
 
     public boolean join(final Member member) {
@@ -140,7 +164,7 @@ public class GameBootstrap {
     }
 
     public boolean hasClickedLeave(final String customId) {
-        return _leaveButton.getCustomId().get().equalsIgnoreCase(customId);
+        return _leaveButton.getCustomId().orElse("fart").equalsIgnoreCase(customId);
     }
 
     public boolean leave(final Member member) {
@@ -153,39 +177,70 @@ public class GameBootstrap {
 
     public boolean initiate(Snowflake guildId) {
         _initiated = true;
-        if (!guildId.equals(_guild.getId())) {
+        if (!_guild.map(guild -> guild.getId().equals(guildId)).block(Duration.ofMinutes(1))) {
             throw new IllegalStateException("guild mismatch");
         }
-        final RestChannel categoryChannel = _discordClient.getChannelById(
-                Snowflake.of(_guild.createChannel(ChannelCreateRequest.builder()
-                                .type(4)
-                                .name("Werewolf Game X")
-                                .build(), null)
-                        .block().id().asLong())
-        );
+        if (_category == null){
+            _category = _guild.flatMap(channel -> channel.createCategory("Werewolf Game X"))
+                    .map(category -> category.getId())
+                    .block(Duration.ofMinutes(5));
+                 /**   .then(_guild.flatMapMany(Guild::getChannels)
+                            .ofType(Category.class)
+                            .filter(category -> category.getName().equals("Werewolf Game X"))
+                            .next())
+                    .map(category -> category.getId())
+                    .retry()
+                    .emp
+                    .checkpoint("New Category created: Werewolf Game X")
+                    .block(Duration.ofMinutes(1));  **/
 
-        final RestChannel werewolfChannel = _discordClient.getChannelById(
-                Snowflake.of(
-                        _guild.createChannel(ChannelCreateRequest.builder()
-                                        .name("Werewolf Chat")
-                                        .type(0)
-                                        .parentId(categoryChannel.getId().asString())
-                                        .build(), null)
-                                .block().id().asLong()
+        }
+        Flux<TextChannel> channelsInCategoryChannel = _gatewayDiscordClient.getChannelById(_category)
+                .ofType(Category.class)
+                .flatMapMany(Category::getChannels)
+                .ofType(TextChannel.class);
+        final Snowflake werewolfChannel = _gatewayDiscordClient.getChannelById(_category).ofType(Category.class)
+                .flatMap(category ->  channelsInCategoryChannel
+                .filter(channel -> channel.getName().equals("Werewolf Chat"))
+                .next()
+                .switchIfEmpty(
+                        _guild.flatMap(guild ->
+                                guild.createTextChannel(
+                                        TextChannelCreateSpec.builder()
+                                                .name("Werewolf Chat")
+                                                .parentId(category.getId())
+                                                .build()
+                                )
+                        )
                 )
-        );
 
-        final RestChannel villagerChannel = _discordClient.getChannelById(
-                Snowflake.of(
-                        _guild.createChannel(ChannelCreateRequest.builder()
-                                        .name("Villager Chat")
-                                        .type(0)
-                                        .parentId(categoryChannel.getId().asString())
-                                        .build(), null)
-                                .block().id().asLong()
+        ).retry()
+                .map(textChannel -> textChannel.getId())
+                .checkpoint("Get Channel: Werewolf Chat")
+                .block(Duration.ofMinutes(1));
+
+
+
+
+
+        final Snowflake villagerChannel = _gatewayDiscordClient.getChannelById(_category).ofType(Category.class)
+                .flatMap(category -> channelsInCategoryChannel
+                .filter(channel -> category.getName().equals("Villager Chat"))
+                .next()
+                .switchIfEmpty(
+                        _guild.flatMap(guild ->
+                                guild.createTextChannel(
+                                        TextChannelCreateSpec.builder()
+                                                .name("Villager Chat")
+                                                .parentId(category.getId())
+                                                .build()
+                                )
+                        )
                 )
-        );
-
+        ).retry()
+                .map(textChannel -> textChannel.getId())
+                .checkpoint("Get Channel: Villager Chat")
+                .block(Duration.ofMinutes(1));
 
         //TODO: finish it
 
@@ -194,16 +249,62 @@ public class GameBootstrap {
         for (int i = _kiUsers; i != 0; i--) {
             userList.add(new KiUser());
         }
+        VoteMachineFactory voteStrategy = new VoteMachineFactory(VoteMachineFactory.Machines.IMPERATIV_MACHINE);
         Game game = new Game(userList, List.of(discordPrinter), voteStrategy);
 
-        for (final Player player : game.getPlayers()) {
+        Flux.fromIterable(game.getPlayers())
+                .filter(player -> player.role().isWerewolf())
+                .map(Player::user)
+                .ofType(DiscordPrinter.DiscordWerewolfUser.class)
+                .flatMap(user ->
+                        _gatewayDiscordClient.getChannelById(werewolfChannel)
+                                .ofType(TextChannel.class)
+                                .flatMap(
+                                        hereWerewolfChannel -> hereWerewolfChannel.addMemberOverwrite(
+                                        user._member.getId(),
+                                        PermissionOverwrite.forMember(
+                                                user._member.getId(),
+                                                PermissionSet.of(Permission.SEND_MESSAGES,Permission.VIEW_CHANNEL,Permission.ADD_REACTIONS),
+                                                PermissionSet.none()
+                                        )
+
+                                )
+                        )
+
+                )
+                .checkpoint("Give Werewolfes Permissions")
+                .subscribe();
+        Flux.fromIterable(game.getPlayers())
+                .map(Player::user)
+                .ofType(DiscordPrinter.DiscordWerewolfUser.class)
+                .flatMap(user ->
+                        _gatewayDiscordClient.getChannelById(villagerChannel).ofType(TextChannel.class).flatMap(
+                                hereVillagerChannel ->
+                                        hereVillagerChannel
+                                                .addMemberOverwrite(
+                                                user._member.getId(),
+                                                PermissionOverwrite.forMember(
+                                                        user._member.getId(),
+                                                        PermissionSet.of(Permission.SEND_MESSAGES,Permission.VIEW_CHANNEL,Permission.ADD_REACTIONS),
+                                                        PermissionSet.none()
+                                                )
+                                )
+                        )
+                )
+                .checkpoint("Give Villagers Permissions")
+                .subscribe();
+
+
+
+      /**  for (final Player player : game.getPlayers()) {
             if (!(player.user() instanceof DiscordPrinter.DiscordWerewolfUser)) {
                 continue;
             }
 
             final Snowflake memberId = ((DiscordPrinter.DiscordWerewolfUser) player.user())._member.getId();
             if (player.role() == GameRole.Werewolf) {
-                werewolfChannel.editChannelPermissions(memberId, PermissionsEditRequest.builder()
+                werewolfChannel.map(textChannel -> textChannel.addMemberOverwrite(player.user().))
+                /** werewolfChannel.editChannelPermissions(memberId, PermissionsEditRequest.builder()
                                 .allow(1 << 10)
                                 .type(1)
                         .deny(0)
@@ -224,7 +325,7 @@ public class GameBootstrap {
                             .build(), null)
                     .block();
 
-        }
+        } **/
         game.gameStart();
         return true;
     }
