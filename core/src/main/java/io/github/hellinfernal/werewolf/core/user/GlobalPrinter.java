@@ -16,5 +16,4 @@ public interface GlobalPrinter {
     void informAboutChangeToNightTime();
     void informAboutStartOfTheHunt();
     void informAboutEndOfTheHunt();
-    void debugPrint(String print);
 }

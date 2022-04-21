@@ -1,6 +1,5 @@
 package io.github.hellinfernal.werewolf.core.vote;
 
-import io.github.hellinfernal.werewolf.core.Game;
 import io.github.hellinfernal.werewolf.core.player.Player;
 import io.github.hellinfernal.werewolf.core.user.User;
 import org.slf4j.Logger;
@@ -18,8 +17,8 @@ import java.util.stream.Collectors;
 public class ReactiveVotingMachine extends VotingMachine {
     private static final Logger LOGGER = LoggerFactory.getLogger(ReactiveVotingMachine.class);
 
-    public ReactiveVotingMachine(List<Player> voters, List<Player> playerSelection, BiFunction<Player, Collection<Player>, Player> voteFunction, Game game) {
-        super(voters, playerSelection, voteFunction, game);
+    public ReactiveVotingMachine(List<Player> voters, List<Player> playerSelection, BiFunction<Player, Collection<Player>, Player> voteFunction) {
+        super(voters, playerSelection, voteFunction);
     }
 
     @Override
@@ -65,7 +64,7 @@ public class ReactiveVotingMachine extends VotingMachine {
                     .filter(entry -> entry.getValue().get() == player.getValue().get())
                     .map(Map.Entry::getKey)
                     .collect(Collectors.toList());
-            VotingMachine votingMachine = new ReactiveVotingMachine(_voters,newPlayerSelection,_voteFunction, _game);
+            VotingMachine votingMachine = new ReactiveVotingMachine(_voters,newPlayerSelection,_voteFunction);
             return Mono.just(votingMachine.voteHighest().get());
         }
 

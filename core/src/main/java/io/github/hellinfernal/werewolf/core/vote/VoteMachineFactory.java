@@ -1,6 +1,5 @@
 package io.github.hellinfernal.werewolf.core.vote;
 
-import io.github.hellinfernal.werewolf.core.Game;
 import io.github.hellinfernal.werewolf.core.player.Player;
 
 import java.util.Collection;
@@ -19,12 +18,12 @@ public class VoteMachineFactory {
 
 
     }
-    public VotingMachine generateVotingMachine(List<Player> voters, List<Player> playerSelection, BiFunction<Player, Collection<Player>,Player> votingFunction, Game game){
+    public VotingMachine generateVotingMachine(List<Player> voters, List<Player> playerSelection, BiFunction<Player, Collection<Player>,Player> votingFunction){
         switch (_machine){
             case IMPERATIV_MACHINE:
-                return new ImperativVotingMachine(voters,playerSelection,votingFunction, game);
+                return new ImperativVotingMachine(voters,playerSelection,votingFunction);
             case REACTIVE_MACHINE:
-                return new ReactiveVotingMachine(voters,playerSelection,votingFunction, game);
+                return new ReactiveVotingMachine(voters,playerSelection,votingFunction);
             default:
                 throw new RuntimeException();
         }

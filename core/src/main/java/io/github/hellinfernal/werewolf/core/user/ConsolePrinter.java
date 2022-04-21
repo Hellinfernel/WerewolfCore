@@ -51,9 +51,4 @@ public class ConsolePrinter implements GlobalPrinter{
     public void informAboutEndOfTheHunt() {
 
     }
-
-    @Override
-    public void debugPrint(String print) {
-
-    }
 }

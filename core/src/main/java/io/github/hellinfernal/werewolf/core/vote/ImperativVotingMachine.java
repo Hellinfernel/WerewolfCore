@@ -1,6 +1,5 @@
 package io.github.hellinfernal.werewolf.core.vote;
 
-import io.github.hellinfernal.werewolf.core.Game;
 import io.github.hellinfernal.werewolf.core.player.Player;
 
 import java.util.*;
@@ -10,8 +9,8 @@ import java.util.function.BiFunction;
 
 public class ImperativVotingMachine extends VotingMachine {
 
-    public ImperativVotingMachine(final List<Player> voters, final List<Player> playerSelection, final BiFunction<Player, Collection<Player>, Player> voteFunction, Game game) {
-        super(voters, playerSelection, voteFunction, game);
+    public ImperativVotingMachine(final List<Player> voters, final List<Player> playerSelection, final BiFunction<Player, Collection<Player>, Player> voteFunction) {
+        super(voters, playerSelection, voteFunction);
         playerSelection.forEach(p -> _playerVotes.computeIfAbsent(p, i -> new AtomicLong()));
     }
 
@@ -79,7 +78,6 @@ public class ImperativVotingMachine extends VotingMachine {
         if (votes == null) {
             throw new IllegalStateException("voted player is not alive. This should not happen");
         }
-        _game.acceptGlobalPrinterMethod(globalPrinter -> globalPrinter.debugPrint(player.toString() + " voted for " + votedPlayer.toString()));
         votes.incrementAndGet();
     }
 }

@@ -33,8 +33,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class DiscordPrinter implements GlobalPrinter {
-    private final Snowflake _channelForDebug;
-
     public class DiscordWerewolfUser implements User {
         Member _member;
         Snowflake _channelForAll;
@@ -198,9 +196,7 @@ public class DiscordPrinter implements GlobalPrinter {
     }
 
     public DiscordPrinter.DiscordWerewolfUser getDiscordWerewolfUser(Member member) {
-        DiscordWerewolfUser discordWerewolfUser = new DiscordWerewolfUser(member, _channelForAll, _channelForWerewolfes, _discordClient);
-        debugPrint("New user Generated: " + discordWerewolfUser.toString());
-        return discordWerewolfUser;
+        return new DiscordWerewolfUser(member, _channelForAll, _channelForWerewolfes,_discordClient);
 
     }
 
@@ -214,12 +210,11 @@ public class DiscordPrinter implements GlobalPrinter {
     //    _discordClient = discordClient;
    // }
 
-    public DiscordPrinter(Snowflake channelForAll, Snowflake channelForWerewolfes, Snowflake channelforDebug, GatewayDiscordClient gatewayDiscordClient) {
+    public DiscordPrinter(Snowflake channelForAll, Snowflake channelForWerewolfes, GatewayDiscordClient gatewayDiscordClient) {
         _channelForAll = channelForAll;
         _channelForWerewolfes = channelForWerewolfes;
         _gatewayDiscordClient = gatewayDiscordClient;
-        _channelForDebug = channelforDebug;
-        debugPrint("Printer created. \n"
+        LOGGER.debug("Printer created. \n"
                 + toString());
         //_gatewayDiscordClient.getGuildById().block().getChannels()
     }
@@ -234,8 +229,8 @@ public class DiscordPrinter implements GlobalPrinter {
                 .withContent("*Tack* *Tack* *Tack* \n" +
                         "Ok, ok, please calm down. we will make a little talk round where everyone can make their arguments and then everyone has one vote.")
                 .withComponents(ActionRow.of(button)))
+                .checkpoint("VillagerVote Started")
                 .subscribe();
-        debugPrint("VillagerVote Started");
     }
 
   /**  private Mono<Void> startOfTheVillagerVoteListener() {
@@ -259,8 +254,8 @@ public class DiscordPrinter implements GlobalPrinter {
         _gatewayDiscordClient.getChannelById(_channelForAll)
                 .ofType(TextChannel.class)
                 .flatMap(channel -> channel.createMessage(killedPlayer.user().name() + " was killed."))
+                .checkpoint(killedPlayer.user().name() + " was killed.")
                 .subscribe();
-        debugPrint(killedPlayer.user().name() + " was killed.");
 
     }
 
@@ -271,8 +266,7 @@ public class DiscordPrinter implements GlobalPrinter {
         _gatewayDiscordClient.getChannelById(_channelForAll)
                 .ofType(TextChannel.class)
         .flatMap(channel -> channel.createMessage("not inplemented yet."))
-                .subscribe();
-        debugPrint("informAboutThingsHappendInNight() needs to be inplemented.");
+                .checkpoint("informAboutThingsHappendInNight() needs to be inplemented.").subscribe();
 
     }
 
@@ -282,7 +276,6 @@ public class DiscordPrinter implements GlobalPrinter {
                 .ofType(TextChannel.class)
         .flatMap(channel -> channel.createMessage("The Game ended!"))
                 .checkpoint("The Game is Over :D").subscribe();
-        debugPrint("the game ended");
 
     }
 
@@ -291,8 +284,7 @@ public class DiscordPrinter implements GlobalPrinter {
         _gatewayDiscordClient.getChannelById(_channelForAll)
                 .ofType(TextChannel.class)
                 .flatMap(channel -> channel.createMessage("The sun arises..."))
-                .subscribe();
-        debugPrint("its now Day");
+                .checkpoint("Its now Day").subscribe();
 
     }
 
@@ -301,8 +293,7 @@ public class DiscordPrinter implements GlobalPrinter {
         _gatewayDiscordClient.getChannelById(_channelForAll)
                 .ofType(TextChannel.class)
                 .flatMap(channel -> channel.createMessage("The sun goes down..."))
-                .subscribe();
-        debugPrint("its now Night");
+                .checkpoint("Its now Night").subscribe();
 
     }
 
@@ -318,8 +309,8 @@ public class DiscordPrinter implements GlobalPrinter {
                 .flatMap(channel -> channel.createMessage()
                 .withContent("Ok, my fellow Werewolf... who are we going to hunt?")
                 .withComponents(ActionRow.of(button)))
+                .checkpoint("Start of the Hunt")
                 .subscribe();
-        debugPrint("hunt Started");
 
     }
 
@@ -328,18 +319,7 @@ public class DiscordPrinter implements GlobalPrinter {
         _gatewayDiscordClient.getChannelById(_channelForAll)
                 .ofType(TextChannel.class)
         .flatMap(channel -> channel.createMessage("The Hunt ended...")).checkpoint("End of the Hunt").subscribe();
-        debugPrint("Hunt ended");
 
-    }
-
-
-
-    @Override
-    public void debugPrint(String print){
-        _gatewayDiscordClient.getChannelById(_channelForDebug)
-                .ofType(TextChannel.class)
-                .flatMap(channel -> channel.createMessage(print)).checkpoint(print).subscribe();
-        LOGGER.debug(print);
     }
 
 }
