@@ -52,10 +52,6 @@ public class GameBootstrap {
     private boolean _initiated = false;
     private final List<Member> _members = new ArrayList<>();
     private final Instant _started = Instant.now();
-    private final Button _registerButton = Button.primary(UUID.randomUUID().toString(), "Join");
-    private final Button _leaveButton = Button.danger(UUID.randomUUID().toString(), "Leave");
-    private final Button _configButton = Button.secondary(UUID.randomUUID().toString(), ReactionEmoji.codepoints("U+2699"));
-    private final Set<String> _buttonIds = Set.of(_registerButton.getCustomId().get(), _leaveButton.getCustomId().get(), _configButton.getCustomId().get());
     private              DiscordClient _discordClient;
     private final Snowflake _channelId;
     private final Mono<Guild> _guild;
@@ -90,47 +86,10 @@ public class GameBootstrap {
     }
 
 
-    public MessageEditSpec configureButtonsEditSpec(Message message){
-        MessageEditSpec newMessage  = MessageEditSpec.builder().addComponent(configureButtonsActionRow()).build();
 
 
-        return newMessage;
 
-    }
-    public ActionRow configureButtonsActionRow(){
-        final Button registerButton = getRegisterButton();
-        final Button leaveButton = getLeaveButton();
-        final Button configButton = getConfigButton();
-        return ActionRow.of(registerButton, leaveButton, configButton);
 
-    }
-
-    private Button getConfigButton() {
-        Button configButton = _configButton;
-        if (_initiated){
-            configButton = configButton.disabled();
-        }
-        return configButton;
-    }
-
-    private Button getLeaveButton() {
-        Button leaveButton = _leaveButton;
-        if (_initiated){
-             leaveButton = leaveButton.disabled();
-        }
-        return leaveButton;
-    }
-
-    private Button getRegisterButton() {
-        Button registerButton = _registerButton;
-
-            registerButton = Button.primary(registerButton.getCustomId().get(), "Join (" + totalPlayers() + ")");
-        if (_initiated){
-             registerButton = registerButton.disabled();
-        }
-
-        return registerButton;
-    }
 
     /**
      *
@@ -142,37 +101,29 @@ public class GameBootstrap {
         return String.valueOf(totalPlayers);
     }
 
-    public boolean hasButton(final String customId) {
-        return _buttonIds.contains(customId);
-    }
 
-    public boolean hasClickedRegister(final String customId) {
-        return _registerButton.getCustomId().orElse("fart").equalsIgnoreCase(customId);
-    }
 
-    public boolean join(final Member member) {
+    public Mono<Boolean> join(final Member member) {
          if (_members.contains(member)) {
-         return false;
+         return Mono.just(false);
          }
         _members.add(member);
-        System.out.println(_members.size());
-        return true;
+         LOGGER.debug("_members.size: " + _members.size());
+        return Mono.just(true);
     }
 
     public boolean hasReachedMinimumMembers() {
         return _members.size() >= get_minimumMembers();
     }
 
-    public boolean hasClickedLeave(final String customId) {
-        return _leaveButton.getCustomId().orElse("fart").equalsIgnoreCase(customId);
-    }
 
-    public boolean leave(final Member member) {
+
+    public Mono<Boolean> leave(final Member member) {
         if (!_members.contains(member)) {
-            return false;
+            return Mono.just(false);
         }
         _members.remove(member);
-        return true;
+        return Mono.just(true);
     }
 
     public boolean initiate(Snowflake guildId) {
@@ -244,7 +195,28 @@ public class GameBootstrap {
 
         //TODO: finish it
 
-        DiscordPrinter discordPrinter = new DiscordPrinter(villagerChannel, werewolfChannel,_gatewayDiscordClient);
+        Snowflake debugChannel = _gatewayDiscordClient.getChannelById(_category).ofType(Category.class)
+                .flatMap(category -> channelsInCategoryChannel
+                        .filter(channel -> category.getName().equals("Debug channel"))
+                        .next()
+                        .switchIfEmpty(
+                                _guild.flatMap(guild ->
+                                        guild.createTextChannel(
+                                                TextChannelCreateSpec.builder()
+                                                        .name("Debug Channel")
+                                                        .permissionOverwrites(guild.getRoles().filter(role -> role.getPosition().block(Duration.ofMinutes(5)) < 4)
+                                                                .map(role -> PermissionOverwrite.forRole(role.getId(),PermissionSet.none(),PermissionSet.all()))
+                                                                .collectList().block(Duration.ofMinutes(5)))
+                                                        .parentId(category.getId())
+                                                        .build()
+                                        )
+                                )
+                        )
+                ).retry()
+                .map(textChannel -> textChannel.getId())
+                .checkpoint("Get Channel: Debug")
+                .block(Duration.ofMinutes(5));
+        DiscordPrinter discordPrinter = new DiscordPrinter(villagerChannel, werewolfChannel, debugChannel,_gatewayDiscordClient);
         List<User> userList = discordPrinter.getDiscordWerewolfUserList(_members);
         for (int i = _kiUsers; i != 0; i--) {
             userList.add(new KiUser());
@@ -334,168 +306,17 @@ public class GameBootstrap {
         return _started;
     }
 
-    public boolean hasClickedConfig(String customId) {
-        return _configButton.getCustomId().get().equalsIgnoreCase(customId);
-    }
-
-    /**
-     * generates a config menu, which generates options to modify the game :D
-     *
-     * @param buttonEvent
-     * @return
-     */
-    public Mono<Void> configMenu(ButtonInteractionEvent buttonEvent) {
-        SelectMenu selectMenu = SelectMenu.of(UUID.randomUUID().toString(),
-                SelectMenu.Option.of("Number of Players", "numberOfPlayers"),
-                SelectMenu.Option.of("Special Roles", "specialRoles"),
-                SelectMenu.Option.of("Initiate", "initiate"),
-                SelectMenu.Option.of("Add KiPlayers :D", "addKiPlayers"));
-        return buttonEvent.deferReply()
-                .withEphemeral(true)
-                .then(buttonEvent.createFollowup()
-                        .withComponents(ActionRow.of(selectMenu))
-                        .withEphemeral(true)
-                        .then(configMenuListener(selectMenu.getCustomId(), buttonEvent)));
-    }
-
-    /**
-     * A Listender which listens to the configMenu.
-     *
-     * @param customID The CustomID of the Menu to get the event on.
-     * @param event
-     * @return the eventDispatcher, .then(numberOfPlayersMenu()) or .then(rolesOptionsMenu())
-     */
-
-    public Mono<Void> configMenuListener(String customID, final ButtonInteractionEvent event) {
-        return event.getClient().on(SelectMenuInteractionEvent.class, menuEvent -> {
-            if (menuEvent.getCustomId().equals(customID)) {
-                if (menuEvent.getValues().contains("numberOfPlayers")) {
-                    LOGGER.debug("numberOfPlayersMenu created.");
-                    return menuEvent.deferReply()
-                            .withEphemeral(true)
-                            .then(numberOfPlayersMenu(menuEvent));
-                }
-                if (menuEvent.getValues().contains("specialRoles")) {
-                    return menuEvent.deferReply()
-                        .withEphemeral(true)
-                        .then(rolesOptionsMenu(menuEvent));
-            }
-            if (menuEvent.getValues().contains("initiate")) {
-                initiate(event.getInteraction().getGuildId().get());
-                return menuEvent.deferReply().then(event.createFollowup().withContent("initiated")).then();
-            }
-            if (menuEvent.getValues().contains("addKiPlayers")){
-                LOGGER.debug("numberOfKiPlayersMenu created");
-                return menuEvent.deferReply()
-                        .withEphemeral(true)
-                        .then(numberOfKiPlayersMenu(menuEvent));
-            }
-
-            }
-            return Mono.empty();
-        }).then();
 
 
 
 
 
 
-    }
-
-    /**
-     * Generates a Menu for the ammount of KiPlayers :D
-     * @param menuEvent
-     * @return
-     */
-
-    private Mono<Void> numberOfKiPlayersMenu(SelectMenuInteractionEvent menuEvent) {
-        List<SelectMenu.Option> playerNumberOptions = new ArrayList<>();
-        for (int i = 1; i < 20; i++) {
-            playerNumberOptions.add(SelectMenu.Option.of(String.valueOf(i),String.valueOf(i)));
-        }
-        SelectMenu selectMenu = SelectMenu.of(UUID.randomUUID().toString(), playerNumberOptions);
-        return menuEvent.createFollowup()
-                .withEphemeral(true)
-                .withComponents(ActionRow.of(selectMenu))
-                .then(numberOfKiPlayersMenuListener(menuEvent,selectMenu));
-
-    }
-
-    private Mono<Void> numberOfKiPlayersMenuListener(SelectMenuInteractionEvent oldMenuEvent,SelectMenu selectMenu) {
-        return oldMenuEvent.getClient().on(SelectMenuInteractionEvent.class, menuEvent ->{
-                    if (menuEvent.getCustomId().equals(selectMenu.getCustomId())) {
-                        String choice = menuEvent.getValues().get(0);
-                        _kiUsers = Integer.parseInt(choice);
-                        StringBuilder stringBuilder = new StringBuilder();
-                        stringBuilder.append("Number of Ki-Players set to: ");
-                        stringBuilder.append(choice);
-                        return menuEvent.deferReply()
-                                .then(menuEvent.createFollowup()
-                                        .withContent(stringBuilder.toString()));
-
-                    }
-                    else return Mono.empty();
-        }
-
-                ).then();
 
 
-    }
 
-    /** generates a menu which gives the options to add or remove Roles from the game
-     *
-     * @param menuEvent The menuEvent on which a followup is created.
-     * @return a followup with a menu and .then() a Listener.
-     */
 
-    private Mono<Void> rolesOptionsMenu(SelectMenuInteractionEvent menuEvent) {
-        SelectMenu selectMenu = SelectMenu.of(UUID.randomUUID().toString(),
-                SelectMenu.Option.of("Add Roles", "addRoles"),
-                SelectMenu.Option.of("Remove Roles", "removeRoles"),
-                SelectMenu.Option.of("Show actual Roles", "showRoles"));
-        return menuEvent.createFollowup()
-                .withComponents(ActionRow.of(selectMenu))
-                .withEphemeral(true)
-                .then(rolesOptionsMenuListener(menuEvent,selectMenu));
 
-    }
-
-    /**
-     * Creates a Eventdispatcher who creates a Menu based on the choosen option :D
-     * @param oldMenuEvent the Event on which a dispatcher should be created
-     * @param selectMenu the selectMenu on which the Listener listens
-     * @return a message :D
-     */
-
-    private Mono<Void> rolesOptionsMenuListener(SelectMenuInteractionEvent oldMenuEvent, SelectMenu selectMenu) {
-        return oldMenuEvent.getClient().on(SelectMenuInteractionEvent.class, menuEvent ->{
-            if (selectMenu.getCustomId().equals(menuEvent.getCustomId())){
-                if (menuEvent.getValues().contains("addRoles")){
-                    LOGGER.debug("addRolesMenu Created");
-                    return menuEvent.deferReply()
-                            .withEphemeral(true)
-                            .then(addRolesMenu(menuEvent));
-
-                }
-                else if (menuEvent.getValues().contains("removeRoles")){
-                    LOGGER.debug("removeRolesMenu Created");
-                    return menuEvent.deferReply()
-                            .withEphemeral(true)
-                            .then(removeRolesMenu(menuEvent));
-                }
-                else if (menuEvent.getValues().contains("showRoles")){
-                    LOGGER.debug("actual Roles shown.");
-                    return menuEvent.reply(getActualRolesAsString());
-                }
-
-            }
-            return Mono.empty();
-            //TODO: Add Javadoc
-
-                }
-                ).then();
-
-    }
 
     /** Returns the names of all roles who are at the moment in the game :D
      *
@@ -509,57 +330,9 @@ public class GameBootstrap {
         return stringBuilder.toString();
     }
 
-    /**
-     * generates a menu where roles can removed from the game
-     * @param menuEvent the menuEvent on which a followup is created.
-     * @return a ephemeral follow up with a menu component, .then() a removeRolesMenuListener.
-     */
 
-    private Mono<Void> removeRolesMenu(SelectMenuInteractionEvent menuEvent) {
-        if (_rolesSet.size() == 0){
-            return menuEvent.createFollowup()
-                            .withEphemeral(true)
-                            .withContent("There are no Special Roles in this game yet :D")
-                    .then();
-        }
-        ArrayList<SelectMenu.Option> options = new ArrayList<>();
-        _rolesSet.forEach(specialRole -> options.add(SelectMenu.Option.of(specialRole.name(),specialRole.name())));
-        SelectMenu selectMenu = SelectMenu.of(UUID.randomUUID().toString(),options)
-                .withMinValues(1)
-                .withMaxValues(options.size());
-        LOGGER.debug("removeRolesMenu created.");
-        return menuEvent.createFollowup()
-                .withEphemeral(true)
-                .withComponents(ActionRow.of(selectMenu))
-                .then(removeRolesMenuListener(menuEvent,selectMenu));
-    }
 
-    /**
-     * generates a eventDispatcher who does listen to a removeRolesMenu
-     * @param oldMenuEvent the menuEvent to get a client on which a dispatcher should be created.
-     * @param selectMenu the menu on which should be reacted.
-     * @return a followup with a string, .then()
-     */
 
-    private Mono<Void> removeRolesMenuListener(SelectMenuInteractionEvent oldMenuEvent, SelectMenu selectMenu) {
-        return oldMenuEvent.getClient().on(SelectMenuInteractionEvent.class, menuEvent -> {
-        if (selectMenu.getCustomId().equals(menuEvent.getCustomId())){
-            menuEvent.getValues()
-                    .forEach(string -> _rolesSet.stream()
-                            .filter(role -> role.name().equals(string))
-                            .findFirst()
-                            .ifPresent(this::removeRole));
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append("The following Roles where removed: \n");
-            menuEvent.getValues().forEach(string -> stringBuilder.append(string).append("\n"));
-            LOGGER.debug(stringBuilder.toString());
-            return menuEvent.deferReply()
-                    .then(menuEvent.createFollowup()
-                            .withContent(stringBuilder.toString()));
-        }
-        return Mono.empty();
-
-    }).then();
     }
 
     /**
@@ -572,132 +345,21 @@ public class GameBootstrap {
         LOGGER.debug("Role was removed: " + specialRole.name());
     }
 
-    /**
-     * Creates a Menu where roles can be choosen who will be added to the game.
-     * @param menuEvent the menuEvent where a followup is created
-     * @return a ephemeral followup with a menu, .then() a Listener
-     */
-
-    private Mono<Void> addRolesMenu(SelectMenuInteractionEvent menuEvent) {
-        ArrayList<SelectMenu.Option> options = new ArrayList<>();
-        Constants.ALL_SPECIALROLES.stream()
-                .filter(o -> !_rolesSet.contains(o))
-                .forEach(specialRole -> options.add(SelectMenu.Option.of(specialRole.name(),specialRole.name())));
-        if (options.size() == 0){
-            return menuEvent.createFollowup()
-                    .withEphemeral(true)
-                    .withContent("There is no role that could be added :D")
-                    .then();
-        }
-        SelectMenu selectMenu = SelectMenu.of(UUID.randomUUID().toString(),options)
-                .withMinValues(1)
-                .withMaxValues(options.size());
-        LOGGER.debug("addRolesMenu created.");
-        return menuEvent.createFollowup()
-                .withEphemeral(true)
-                .withComponents(ActionRow.of(selectMenu))
-                .then(addRolesMenuListener(menuEvent,selectMenu));
-
-    }
 
 
-    /**
-     * Creates a Listener who listens to a AddRolesMenu and reacts on it.
-     * @param oldMenuEvent the menuEvent on which client a event should be created.
-     * @param selectMenu the selectMenu on which should be reacted.
-     * @return a followup with a string, .then()
-     */
 
-    private Mono<Void> addRolesMenuListener(SelectMenuInteractionEvent oldMenuEvent, SelectMenu selectMenu) {
-        return oldMenuEvent.getClient().on(SelectMenuInteractionEvent.class, menuEvent -> {
-            if (selectMenu.getCustomId().equals(menuEvent.getCustomId())){
-                menuEvent.getValues()
-                        .forEach(string -> Constants.ALL_SPECIALROLES.stream()
-                                .filter(role -> role.name().equals(string))
-                                .findFirst()
-                                .ifPresent(this::addRole));
-                StringBuilder stringBuilder = new StringBuilder();
-                stringBuilder.append("The following Roles where added: \n");
-                menuEvent.getValues().forEach(string -> stringBuilder.append(string).append("\n"));
-                LOGGER.debug(stringBuilder.toString());
-                return menuEvent.deferReply()
-                        .then(menuEvent.createFollowup()
-                                .withContent(stringBuilder.toString()));
-            }
-            return Mono.empty();
 
-                }).then();
-
-    }
 
     private Mono<Void> possibleRolesMenu(SelectMenuInteractionEvent menuEvent) {
         //TODO: forgot lol :D
         return menuEvent.reply().withContent("Not inplemented");
     }
 
-    /**
-     * A Menu with a list of Numbers. You can choose 2 of them.
-     * @param menuEvent the Event on wich a followup should be created.
-     * @return a Ephemeral Followup and a Menu as Component, .then() a numberOfPlayersMenuListener on that menu.
-     */
-    private Mono<Void> numberOfPlayersMenu(SelectMenuInteractionEvent menuEvent) {
-        List<SelectMenu.Option> playerNumberOptions = new ArrayList<>();
-        for (int i = 1; i < 20; i++) {
-            playerNumberOptions.add(SelectMenu.Option.of(String.valueOf(i),String.valueOf(i)));
-        }
-            SelectMenu selectMenu = SelectMenu.of(UUID.randomUUID().toString(), playerNumberOptions)
-                    .withMinValues(2)
-                    .withMaxValues(2)
-                    .withPlaceholder("Select two Values. The lower will be the minimum Value, the higher the Maximum.");
-        LOGGER.debug("numberOfPlayersMenu created");
-        return menuEvent.createFollowup()
-                .withComponents(ActionRow.of(selectMenu))
-                .withEphemeral(true)
-                .then(numberOfPlayersMenuListener(menuEvent, selectMenu));
-
-
-    }
-
-    /** Creates the Listener for numberOfPlayersMenu.
-     * It Collects the 2 Values who come from the newMenuEvent and sets
-     * _minimumMembers and _maximumMembers based on which value is higher or lower
-     *
-     * @param menuEvent the menuEvent from the menu before, used to get a eventDispatcher
-     * @param selectMenu the Menu on which the listener is installed.
-     * @return all of that stuff, and a .then()
-     */
-
-    private Mono<Void> numberOfPlayersMenuListener(SelectMenuInteractionEvent menuEvent, SelectMenu selectMenu) {
-        return menuEvent.getClient().on(SelectMenuInteractionEvent.class, newMenuEvent ->{
-            if (selectMenu.getCustomId().equalsIgnoreCase(newMenuEvent.getCustomId())){
-                List<String> values = newMenuEvent.getValues();
-                if (values.size() == 2){
-                    List<Integer> valuesAsInt = values.stream()
-                            .flatMapToInt(string -> IntStream.of(Integer.parseInt(string)))
-                            .sorted()
-                            .boxed()
-                            .collect(Collectors.toList());
-                    set_minimumMembers(valuesAsInt.get(0));
-                    set_maximumMembers(valuesAsInt.get(1));
-
-                }
-
-            }
-
-            return newMenuEvent.deferReply()
-                    .then(newMenuEvent.createFollowup()
-                            .withContent("Number of Minimum Members Changed to " + get_minimumMembers() + "\n" +
-                                    "Number of Maximum Members Changed to " + get_maximumMembers()));
 
 
 
 
 
-        }).then();
-
-
-
-    }
 
     public long get_minimumMembers() {
         return _minimumMembers;

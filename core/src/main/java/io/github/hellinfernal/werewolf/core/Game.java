@@ -366,6 +366,6 @@ public class Game {
     }
 
     public VotingMachine get_voteStrategy(List<Player> voters, List<Player> playerSelection, BiFunction<Player,Collection<Player>,Player> votingFunction) {
-        return _voteStrategy.generateVotingMachine(voters,playerSelection,votingFunction);
+        return _voteStrategy.generateVotingMachine(voters,playerSelection,votingFunction,this);
     }
 }
