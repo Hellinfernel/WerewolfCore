@@ -1,18 +1,17 @@
-package io.github.hellinfernal.werewolf.core.game;
-
-import io.github.hellinfernal.werewolf.core.Game;
-import io.github.hellinfernal.werewolf.core.player.Player;
-import io.github.hellinfernal.werewolf.core.user.GlobalPrinter;
-import io.github.hellinfernal.werewolf.core.vote.ImperativVotingMachine;
-import io.github.hellinfernal.werewolf.core.vote.VotingMachine;
+package io.github.hellinfernal.werewolf.core.async.moves;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class WerewolfMove implements GameMove {
-    private final Game _game;
+import io.github.hellinfernal.werewolf.core.async.GameAsync;
+import io.github.hellinfernal.werewolf.core.player.Player;
+import io.github.hellinfernal.werewolf.core.user.GlobalPrinter;
+import io.github.hellinfernal.werewolf.core.vote.VotingMachine;
 
-    public WerewolfMove(final Game game) {
+public class WerewolfMoveAsync implements GameMoveAsync {
+    private final GameAsync _game;
+
+    public WerewolfMoveAsync(final GameAsync game) {
         _game = game;
     }
 
@@ -22,7 +21,7 @@ public class WerewolfMove implements GameMove {
         final List<Player> hunters = new ArrayList<>(_game.getAliveWerewolfPlayers());
         final List<Player> victims = _game.getAliveVillagerPlayers();
 
-        final VotingMachine votingMachine = _game.get_voteStrategy(hunters, victims, (player, players) -> player.user().requestWerewolfVote(players));
+        final VotingMachine votingMachine = _game.getVoteStrategy(hunters, victims, (player, players) -> player.user().requestWerewolfVote(players));
 
         //TODO: warten bis eine antwort da ist
         /**

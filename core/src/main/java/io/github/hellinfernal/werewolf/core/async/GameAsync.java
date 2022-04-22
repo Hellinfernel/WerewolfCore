@@ -1,73 +1,90 @@
-package io.github.hellinfernal.werewolf.core;
+package io.github.hellinfernal.werewolf.core.async;
 
-import io.github.hellinfernal.werewolf.core.game.*;
-import io.github.hellinfernal.werewolf.core.player.GamePlayer;
-import io.github.hellinfernal.werewolf.core.player.Player;
-import io.github.hellinfernal.werewolf.core.role.GameRole;
-import io.github.hellinfernal.werewolf.core.role.SpecialRole;
-import io.github.hellinfernal.werewolf.core.user.GlobalPrinter;
-import io.github.hellinfernal.werewolf.core.user.User;
-import io.github.hellinfernal.werewolf.core.vote.VoteMachineFactory;
-import io.github.hellinfernal.werewolf.core.vote.VotingMachine;
-import io.github.hellinfernal.werewolf.core.winningcondition.VillagerWinningCondition;
-import io.github.hellinfernal.werewolf.core.winningcondition.WerewolfWinningCondition;
-import io.github.hellinfernal.werewolf.core.winningcondition.WinningCondition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static io.github.hellinfernal.werewolf.core.role.GameRole.Villager;
+import static io.github.hellinfernal.werewolf.core.role.GameRole.Werewolf;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static io.github.hellinfernal.werewolf.core.role.GameRole.Villager;
-import static io.github.hellinfernal.werewolf.core.role.GameRole.Werewolf;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.github.hellinfernal.werewolf.core.Protocol;
+import io.github.hellinfernal.werewolf.core.async.moves.AmorMoveAsync;
+import io.github.hellinfernal.werewolf.core.async.moves.GameMoveAsync;
+import io.github.hellinfernal.werewolf.core.async.moves.VillagerMoveAsync;
+import io.github.hellinfernal.werewolf.core.async.moves.WerewolfMoveAsync;
+import io.github.hellinfernal.werewolf.core.async.moves.WitchMoveAsync1;
+import io.github.hellinfernal.werewolf.core.async.moves.WitchMoveAsync2;
+import io.github.hellinfernal.werewolf.core.async.player.GamePlayerAsync;
+import io.github.hellinfernal.werewolf.core.async.player.PlayerAsync;
+import io.github.hellinfernal.werewolf.core.async.round.DayRoundAsync;
+import io.github.hellinfernal.werewolf.core.async.round.GameRoundAsync;
+import io.github.hellinfernal.werewolf.core.async.round.NightRoundAsync;
+import io.github.hellinfernal.werewolf.core.async.user.GlobalPrinterAsync;
+import io.github.hellinfernal.werewolf.core.async.user.UserAsync;
+import io.github.hellinfernal.werewolf.core.async.winningcondition.VillagerWinningConditionAsync;
+import io.github.hellinfernal.werewolf.core.async.winningcondition.WerewolfWinningConditionAsync;
+import io.github.hellinfernal.werewolf.core.async.winningcondition.WinningConditionAsync;
+import io.github.hellinfernal.werewolf.core.player.Player;
+import io.github.hellinfernal.werewolf.core.role.GameRole;
+import io.github.hellinfernal.werewolf.core.role.SpecialRole;
+import io.github.hellinfernal.werewolf.core.user.GlobalPrinter;
+import io.github.hellinfernal.werewolf.core.user.User;
+import io.github.hellinfernal.werewolf.core.vote.ImperativVotingMachine;
+import io.github.hellinfernal.werewolf.core.vote.VotingMachine;
+import io.github.hellinfernal.werewolf.core.winningcondition.WinningCondition;
+
 
 /**
  * TODOS:
  * - Intro mit Geschichten erzählen zwischen den Runden
  * - Tag und Nacht sind die runden die gespielt werden, jede Rolle hat jeweils einen Zug
  */
-public class Game {
+public class GameAsync {
     private boolean isDay;
 
-    private final List<Player> _playersPlayingTheGame = new ArrayList<>();
-    private final List<WinningCondition> _winConditions = List.of(
-            new WerewolfWinningCondition(),
-            new VillagerWinningCondition()
+    private final List<PlayerAsync>           _playersPlayingTheGame = new ArrayList<>();
+    private final List<WinningConditionAsync> _winConditions         = List.of(
+            new WerewolfWinningConditionAsync(),
+            new VillagerWinningConditionAsync()
     );
-    private final List<GlobalPrinter> _globalPrinters;
-    private final GameRound _nightRound = new NightRound(this);
-    private final GameRound _dayRound = new DayRound();
+    private final List<GlobalPrinterAsync>         _globalPrinters;
+    private final GameRoundAsync      _nightRound = new NightRoundAsync();
+    private final GameRoundAsync      _dayRound   = new DayRoundAsync();
 
-    private final VoteMachineFactory _voteStrategy;
+    private final GameMoveAsync _werewolfMove = new WerewolfMoveAsync(this);
+    private final GameMoveAsync _villagerMove = new VillagerMoveAsync(this);
 
-    private final GameMove _werewolfMove = new WerewolfMove(this);
-    private final GameMove _villagerMove = new VillagerMove(this);
+    private final GameMoveAsync _witchMove1 = new WitchMoveAsync1(this);
+    private final GameMoveAsync _witchMove2 = new WitchMoveAsync2(this);
 
-    private final GameMove _witchMove1 = new WitchMove1(this);
-    private final GameMove _witchMove2 = new WitchMove2(this);
+    private final GameMoveAsync _AmorMove = new AmorMoveAsync(this);
 
-    private final GameMove _AmorMove = new AmorMove(this);
-
-    private GameRound _activeRound = _nightRound;
-    private GameMove _activeMove = _werewolfMove;
-    private static final Logger LOGGER = LoggerFactory.getLogger(Game.class);
-    private final Protocol protocol;
+    private GameRoundAsync _activeRound = _nightRound;
+    private              GameMoveAsync _activeMove = _werewolfMove;
+    private static final Logger   LOGGER = LoggerFactory.getLogger(GameAsync.class);
+    private final        Protocol protocol;
 
 
-    public Game(final List<User> users, final List<GlobalPrinter> globalPrinters, VoteMachineFactory voteStrategy) {
+    public GameAsync(final List<UserAsync> usersThatWantToPlay, final List<GlobalPrinterAsync> globalPrinters) {
         _globalPrinters = globalPrinters;
-        _voteStrategy = voteStrategy;
         isDay = false;
         protocol = new Protocol("Game");
-        final long amountOfWerewolfs = Werewolf.getAmount(users.size());
+        final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size());
         int werewolfsSelected = 0;
-        Collections.shuffle(users);
+        Collections.shuffle(usersThatWantToPlay);
 
-        for (final User user : users) {
+        for (final UserAsync user : usersThatWantToPlay) {
             GameRole gameRole;
             if (werewolfsSelected < amountOfWerewolfs) {
                 gameRole = Werewolf;
@@ -75,12 +92,10 @@ public class Game {
             } else {
                 gameRole = GameRole.Villager;
             }
-            final Player player = new GamePlayer(this,gameRole, user);
+            final PlayerAsync player = new GamePlayerAsync(this,gameRole, user);
             _playersPlayingTheGame.add(player);
         }
         LOGGER.debug("Game Created: \n " + toString());
-
-
     }
 
     /**
@@ -89,9 +104,8 @@ public class Game {
      * @param usersThatWantToBeWerewolfes
      * @param voteStrategy
      */
-    public Game(final List<User> usersThatWantToPlay, final List<User> usersThatWantToBeWerewolfes, final List<GlobalPrinter> globalPrinters, VoteMachineFactory voteStrategy) {
+    public GameAsync(final List<UserAsync> usersThatWantToPlay, final List<UserAsync> usersThatWantToBeWerewolfes, final List<GlobalPrinterAsync> globalPrinters) {
         _globalPrinters = globalPrinters;
-        _voteStrategy = voteStrategy;
         isDay = false;
         protocol = new Protocol("Game");
         final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size()+ usersThatWantToBeWerewolfes.size());
@@ -99,18 +113,18 @@ public class Game {
         if (usersThatWantToBeWerewolfes.size() > amountOfWerewolfs){
             throw new RuntimeException("You need a bigger game");
         }
-        for (final User user : usersThatWantToBeWerewolfes){
+        for (final UserAsync user : usersThatWantToBeWerewolfes){
             GameRole gameRole;
             gameRole = Werewolf;
             werewolfsSelected++;
-            final Player player = new GamePlayer(this,gameRole,user);
+            final PlayerAsync player = new GamePlayerAsync(this,gameRole,user);
             _playersPlayingTheGame.add(player);
         }
 
 
         Collections.shuffle(usersThatWantToPlay);
 
-        for (final User user : usersThatWantToPlay) {
+        for (final UserAsync user : usersThatWantToPlay) {
             GameRole gameRole;
             if (werewolfsSelected < amountOfWerewolfs) {
                 gameRole = Werewolf;
@@ -118,64 +132,7 @@ public class Game {
             } else {
                 gameRole = GameRole.Villager;
             }
-            final Player player = new GamePlayer(this,gameRole, user);
-            _playersPlayingTheGame.add(player);
-        }
-        LOGGER.debug("Game Created: \n " + toString());
-
-    }
-
-    /**
-     *  @param usersThatWantToPlay
-     *       Contains users who have no prefered role
-     *       @param usersThatWantToBeWerewolfes
-     *       contains users who want to be Werewolfes
-     * @param PlayersWithASpecialRole
-     * @param voteStrategy
-     */
-    public Game(final List<User> usersThatWantToPlay, final List<User> usersThatWantToBeWerewolfes, final Map<SpecialRole, User> PlayersWithASpecialRole, final List<GlobalPrinter> globalPrinters, VoteMachineFactory voteStrategy) {
-        _globalPrinters = globalPrinters;
-        _voteStrategy = voteStrategy;
-        isDay = false;
-        protocol = new Protocol("Game");
-        final long amountOfWerewolfs = Werewolf.getAmount(usersThatWantToPlay.size()+ usersThatWantToBeWerewolfes.size());
-        int werewolfsSelected = 0;
-
-        for (Map.Entry<SpecialRole, User> entry : PlayersWithASpecialRole.entrySet()) {
-            SpecialRole s = entry.getKey();
-            User u = entry.getValue();
-            if (s._linkedCoreRole == Werewolf) {
-                werewolfsSelected++;
-            }
-
-                _playersPlayingTheGame.add(new GamePlayer(this,s._linkedCoreRole, u, s));
-
-        }
-
-        if (usersThatWantToBeWerewolfes.size() - werewolfsSelected > amountOfWerewolfs){
-            throw new RuntimeException("You need a bigger game");
-        }
-
-        for (final User user : usersThatWantToBeWerewolfes){
-            GameRole gameRole;
-            gameRole = Werewolf;
-            werewolfsSelected++;
-            final Player player = new GamePlayer(this,gameRole,user);
-            _playersPlayingTheGame.add(player);
-        }
-
-
-        Collections.shuffle(usersThatWantToPlay);
-
-        for (final User user : usersThatWantToPlay) {
-            GameRole gameRole;
-            if (werewolfsSelected < amountOfWerewolfs) {
-                gameRole = Werewolf;
-                werewolfsSelected++;
-            } else {
-                gameRole = GameRole.Villager;
-            }
-            final Player player = new GamePlayer(this,gameRole, user);
+            final PlayerAsync player = new GamePlayerAsync(this,gameRole, user);
             _playersPlayingTheGame.add(player);
         }
         LOGGER.debug("Game Created: \n " + toString());
@@ -191,14 +148,14 @@ public class Game {
         return _playersPlayingTheGame.stream().filter(Player::isDead).collect(Collectors.toList());
     }
 
-    public Player getLastKilledPlayer() {
+    public PlayerAsync getLastKilledPlayer() {
         return _playersPlayingTheGame.stream()
                 .filter(Player::isDead)
                 .max(Comparator.comparing(k -> k.killed().get()))
                 .orElse(null);
     }
     public void gameStart(){
-        while (playStandardRound() == false){
+        while ( playRound() == false){
 
         }
         System.out.println(":D");
@@ -213,7 +170,7 @@ public class Game {
     }
      **/
 
-    public boolean playStandardRound() {
+    public boolean playRound() {
         
         WinningCondition fulfilledWinningCondition = null;
 
@@ -263,14 +220,14 @@ public class Game {
         }
     }
 
-    public List<Player> getPlayers() {
+    public List<PlayerAsync> getPlayers() {
         return _playersPlayingTheGame;
     }
 
-    public GameMove getVillagerMove() {
+    public GameMoveAsync getVillagerMove() {
         return _villagerMove;
     }
-    public GameMove getWerewolfMove(){
+    public GameMoveAsync getWerewolfMove(){
         return _werewolfMove;
     }
 
@@ -279,13 +236,13 @@ public class Game {
     }
 
 
-    public List<Player> getAlivePlayers() {
+    public List<PlayerAsync> getAlivePlayers() {
         return getPlayers().stream().filter(Player::isAlive).collect(Collectors.toList());
     }
-    public List<Player> getAliveWerewolfPlayers(){
+    public List<PlayerAsync> getAliveWerewolfPlayers(){
         return getPlayers().stream().filter(player -> player.role() == Werewolf).filter(Player::isAlive).collect(Collectors.toList());
     }
-    public List<Player> getAliveVillagerPlayers(){
+    public List<PlayerAsync> getAliveVillagerPlayers(){
         return getPlayers().stream().filter(player -> player.role() == Villager).filter(Player::isAlive).collect(Collectors.toList());
 
     }
@@ -295,11 +252,11 @@ public class Game {
      * @return a Amor move ;D
      */
 
-    public GameMove getAmorMove() {
+    public GameMoveAsync getAmorMove() {
         return _AmorMove;
     }
 
-    public Optional<Player> getSpecialClassPlayer(SpecialRole role) {
+    public Optional<PlayerAsync> getSpecialClassPlayer(SpecialRole role) {
         return getPlayers().stream().filter(player -> player.specialRoles().contains(role)).findFirst();
     }
     public Player getPlayer(User user){
@@ -308,25 +265,25 @@ public class Game {
         return player.get();
     }
 
-    public GameMove getWitchMove1() {
+    public GameMoveAsync getWitchMove1() {
         return _witchMove1;
     }
 
-    public GameMove getWitchMove2() {
+    public GameMoveAsync getWitchMove2() {
         return _witchMove2;
     }
 
     /**
     * Gets a Random Player. Shouldn't throw a Exception.
      */
-    public Player getRandomPlayer() {
+    public PlayerAsync getRandomPlayer() {
         return getPlayers().stream().findAny().get();
     }
 
     /**
      * Gets a Random Player, filtered with an predicate. Shouldn't throw a Exception too, except if the predicate is too restrictive
      */
-    public Player getRandomPlayerWithCondition(Predicate<Player> predicate){
+    public PlayerAsync getRandomPlayerWithCondition(Predicate<Player> predicate){
         return getPlayers().stream().filter(predicate).findAny().orElseThrow();
     }
 
@@ -334,11 +291,10 @@ public class Game {
      *
      * @return a list where all Players with the called role are
      */
-    public List<Player> getSpecialRolePlayers(SpecialRole specialRole){
-        List<Player> list = getPlayers().stream()
-                .filter(player -> player.specialRoles().contains(specialRole))
-                .collect(Collectors.toList());
-        return list;
+    public List<PlayerAsync> getSpecialRolePlayers(SpecialRole specialRole){
+        return getPlayers().stream()
+              .filter(player -> player.specialRoles().contains(specialRole))
+              .collect(Collectors.toList());
 
     }
 
@@ -361,11 +317,11 @@ public class Game {
                 '}';
     }
 
-    public void acceptGlobalPrinterMethod(Consumer<GlobalPrinter> action){
+    public void acceptGlobalPrinterMethod(Consumer<GlobalPrinterAsync> action){
         _globalPrinters.forEach(action::accept);
     }
 
-    public VotingMachine get_voteStrategy(List<Player> voters, List<Player> playerSelection, BiFunction<Player,Collection<Player>,Player> votingFunction) {
-        return _voteStrategy.generateVotingMachine(voters,playerSelection,votingFunction);
+    public VotingMachine getVoteStrategy(List<Player> voters, List<Player> playerSelection, BiFunction<Player,Collection<Player>,Player> votingFunction) {
+        return new ImperativVotingMachine(voters,playerSelection,votingFunction);
     }
 }
