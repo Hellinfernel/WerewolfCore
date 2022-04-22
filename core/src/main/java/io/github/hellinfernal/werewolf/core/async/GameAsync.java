@@ -15,6 +15,8 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import io.github.hellinfernal.werewolf.core.Game;
+import io.github.hellinfernal.werewolf.core.game.GameRound;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,8 +72,7 @@ public class GameAsync {
 
     private final GameMoveAsync _AmorMove = new AmorMoveAsync(this);
 
-    private GameRoundAsync _activeRound = _nightRound;
-    private              GameMoveAsync _activeMove = _werewolfMove;
+    private final List<GameMoveAsync> _movesQueue = new ArrayList<>();
     private static final Logger   LOGGER = LoggerFactory.getLogger(GameAsync.class);
     private final        Protocol protocol;
 
@@ -206,6 +207,33 @@ public class GameAsync {
             //playStandardRound();
         }
     }
+    private void playRoundAsync(){
+
+        GameRoundAsync gameRoundAsync = getListOfPlayedMovesOfThisRound();
+        _movesQueue.addAll(gameRoundAsync.getMoves());
+        while (!_movesQueue.isEmpty()){
+            playMoveInQueue();
+        }
+
+    }
+
+    private void playMoveInQueue() {
+        _movesQueue.sort(move -> m);
+    }
+
+
+    /**
+     *
+     * @return returns the round that is played
+     */
+    private GameRoundAsync getListOfPlayedMovesOfThisRound() {
+        if (isDay){
+            return _dayRound;
+        }
+        else {
+            return _nightRound;
+        }
+    }
 
     private void changeDayTime() {
         if (isDay == true){
@@ -318,7 +346,7 @@ public class GameAsync {
     }
 
     public void acceptGlobalPrinterMethod(Consumer<GlobalPrinterAsync> action){
-        _globalPrinters.forEach(action::accept);
+        _globalPrinters.forEach(action);
     }
 
     public VotingMachine getVoteStrategy(List<Player> voters, List<Player> playerSelection, BiFunction<Player,Collection<Player>,Player> votingFunction) {
