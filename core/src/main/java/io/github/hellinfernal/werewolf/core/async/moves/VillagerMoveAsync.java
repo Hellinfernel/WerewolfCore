@@ -1,7 +1,9 @@
 package io.github.hellinfernal.werewolf.core.async.moves;
 
+import java.time.Instant;
 import java.util.List;
 
+import io.github.hellinfernal.werewolf.core.async.player.PlayerAsync;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,17 +16,32 @@ import io.github.hellinfernal.werewolf.core.vote.VotingMachine;
 public class VillagerMoveAsync implements GameMoveAsync {
 
    private       GameAsync                    _game;
-   private Logger LOGGER = LoggerFactory.getLogger(VillagerMoveAsync.class);
+   private static Logger LOGGER = LoggerFactory.getLogger(VillagerMoveAsync.class);
 
    public VillagerMoveAsync( GameAsync game ) {
       _game = game;
    }
 
    @Override
-   public void execute() {
-      _game.acceptGlobalPrinterMethod(GlobalPrinter::informAboutStartOfTheVillagerVote);
+   public Instant startOfstart() {
+      return null;
+   }
 
-      final List<Player> alivePlayers = _game.getAlivePlayers();
+   @Override
+   public MovePriority movePriority() {
+      return MovePriority.VILLAGER_MOVE;
+   }
+
+   @Override
+   public MoveState actualState() {
+      return null;
+   }
+
+   @Override
+   public void execute() {
+      _game.acceptGlobalPrinterMethod(t -> GlobalPrinter.informAboutStartOfTheVillagerVote(t));
+
+      final List<PlayerAsync> alivePlayers = _game.getAlivePlayers();
       final VotingMachine votingMachine = _game.getVoteStrategy(alivePlayers,alivePlayers, (player, players) -> player.user().requestVillagerVote(players));
 
       // final VotingMachine votingMachine = new ImperativVotingMachine(alivePlayers, alivePlayers, (player, players) -> player.user().requestVillagerVote(players));
@@ -32,6 +49,21 @@ public class VillagerMoveAsync implements GameMoveAsync {
       victim.kill();
       LOGGER.debug("Victim Killed: " + victim.toString());
       _game.acceptGlobalPrinterMethod(globalPrinter -> globalPrinter.informAboutResultOfVillagerVote(victim));
+   }
+
+   @Override
+   public void start() {
+
+   }
+
+   @Override
+   public void finish() {
+
+   }
+
+   @Override
+   public void forcedFinish() {
+
    }
 }
 

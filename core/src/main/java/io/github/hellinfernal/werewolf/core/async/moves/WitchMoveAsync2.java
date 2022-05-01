@@ -17,6 +17,11 @@ public class WitchMoveAsync2 implements GameMoveAsync {
     }
 
     @Override
+    public MovePriority movePriority() {
+        return MovePriority.WITCH_MOVE2;
+    }
+
+    @Override
     public void execute() {
         Optional<Player> playerWithWitchRole = _game.getSpecialClassPlayer(SpecialRole.Witch);
         if (playerWithWitchRole.isEmpty()) {
@@ -27,5 +32,10 @@ public class WitchMoveAsync2 implements GameMoveAsync {
         final VotingMachine votingMachine = _game.getVoteStrategy(List.of(playerWithWitchRole.get()), alivePlayers, (player, players) -> player.user().requestKillPotionUse(players));
 
         votingMachine.voteHighest().ifPresent(Player::kill);
+    }
+
+    @Override
+    public void start() {
+
     }
 }

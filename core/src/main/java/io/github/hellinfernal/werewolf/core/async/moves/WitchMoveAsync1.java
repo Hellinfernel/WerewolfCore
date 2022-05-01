@@ -20,6 +20,12 @@ public class WitchMoveAsync1 implements GameMoveAsync {
         _game = game;
 
     }
+
+    @Override
+    public MovePriority movePriority() {
+        return MovePriority.WITCH_MOVE1;
+    }
+
     @Override
     public void execute() {
         final Optional<PlayerAsync> witch = _game.getSpecialClassPlayer(Witch);
@@ -37,6 +43,11 @@ public class WitchMoveAsync1 implements GameMoveAsync {
                 }
             }
         });
+
+    }
+
+    @Override
+    public void start() {
 
     }
 }

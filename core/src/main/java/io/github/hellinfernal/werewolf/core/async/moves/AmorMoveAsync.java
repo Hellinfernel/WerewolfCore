@@ -22,6 +22,11 @@ public class AmorMoveAsync implements GameMoveAsync {
     }
 
     @Override
+    public MovePriority movePriority() {
+        return MovePriority.AMOR_MOVE;
+    }
+
+    @Override
     public void execute() {
         if (_playersInLove != null) {
             return;
@@ -38,6 +43,11 @@ public class AmorMoveAsync implements GameMoveAsync {
             _playersInLove = playersInLove;
             LOGGER.debug("The following Players fall in Love :" + playersInLove.toString());
         }
+    }
+
+    @Override
+    public void start() {
+
     }
 
 }

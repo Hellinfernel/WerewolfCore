@@ -16,6 +16,11 @@ public class WerewolfMoveAsync implements GameMoveAsync {
     }
 
     @Override
+    public MovePriority movePriority() {
+        return MovePriority.WEREWOLF_MOVE;
+    }
+
+    @Override
     public void execute() {
         _game.acceptGlobalPrinterMethod(GlobalPrinter::informAboutStartOfTheHunt);
         final List<Player> hunters = new ArrayList<>(_game.getAliveWerewolfPlayers());
@@ -32,5 +37,10 @@ public class WerewolfMoveAsync implements GameMoveAsync {
 
         votingMachine.voteHighest().ifPresent(Player::kill);
         _game.acceptGlobalPrinterMethod(GlobalPrinter::informAboutEndOfTheHunt);
+    }
+
+    @Override
+    public void start() {
+
     }
 }

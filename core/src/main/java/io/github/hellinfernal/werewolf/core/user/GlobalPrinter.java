@@ -1,8 +1,10 @@
 package io.github.hellinfernal.werewolf.core.user;
 
+import io.github.hellinfernal.werewolf.core.async.user.GlobalPrinterAsync;
 import io.github.hellinfernal.werewolf.core.player.Player;
 
 public interface GlobalPrinter {
+
 
 
     void informAboutStartOfTheVillagerVote();
