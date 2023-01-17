@@ -21,7 +21,7 @@
         <maven.shade.plugin>3.2.2</maven.shade.plugin>
 
         <junit.version>5.8.2</junit.version>
-        <assertj.version>3.22.0</assertj.version>
+        <assertj.version>3.24.2</assertj.version>
         <aspectj.version>1.9.5</aspectj.version>
     </properties>
 
